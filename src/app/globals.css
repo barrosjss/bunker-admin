@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #000000;
+    --surface: #111111;
+    --surface-elevated: #1a1a1a;
+    --border: #2a2a2a;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --primary: #78BDBF;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-sans antialiased;
+    font-size: 16px;
+  }
+
+  /* Scrollbar styling for dark mode */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-secondary;
+  }
+}
+
+@layer components {
+  /* Touch-friendly targets for tablet */
+  .touch-target {
+    @apply min-h-touch min-w-touch;
+  }
+
+  /* Card component base */
+  .card {
+    @apply bg-surface rounded-xl border border-border p-4;
+  }
+
+  .card-elevated {
+    @apply bg-surface-elevated rounded-xl border border-border p-4;
+  }
+
+  /* Input base styles */
+  .input-base {
+    @apply w-full px-4 py-3 bg-surface-elevated border border-border rounded-lg
+           text-text-primary placeholder:text-text-secondary
+           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+           transition-all duration-200;
+  }
+
+  /* Button base styles */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-3
+           font-medium rounded-lg transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background
+           disabled:opacity-50 disabled:cursor-not-allowed
+           min-h-touch;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-background hover:bg-primary-400 focus:ring-primary;
+  }
+
+  .btn-secondary {
+    @apply btn bg-surface-elevated border border-border text-text-primary
+           hover:bg-border focus:ring-border;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-danger-600 focus:ring-danger;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-text-secondary hover:text-text-primary
+           hover:bg-surface-elevated focus:ring-border;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Tablet-optimized grid */
+  .grid-tablet {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  /* Sidebar width */
+  .sidebar-width {
+    width: 280px;
+  }
+}
