@@ -19,13 +19,9 @@ export function useMembers() {
       .select(`
         *,
         memberships (
-          id,
-          start_date,
-          end_date,
-          status,
+          *,
           membership_plans (
-            name,
-            duration_days
+            *
           )
         )
       `)

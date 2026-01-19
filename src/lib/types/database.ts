@@ -436,14 +436,14 @@ export type TrainingSessionUpdate = Database["public"]["Tables"]["training_sessi
 export type SessionExerciseUpdate = Database["public"]["Tables"]["session_exercises"]["Update"];
 
 // Extended types with relations
-export type MemberWithMembership = Member & {
-  memberships?: Membership[];
-  current_membership?: Membership | null;
-};
-
 export type MembershipWithPlan = Membership & {
   membership_plans?: MembershipPlan | null;
   members?: Member | null;
+};
+
+export type MemberWithMembership = Member & {
+  memberships?: MembershipWithPlan[];
+  current_membership?: MembershipWithPlan | null;
 };
 
 export type TrainingSessionWithDetails = TrainingSession & {
