@@ -11,10 +11,14 @@ export const metadata: Metadata = {
   title: "Bunker Admin - Sistema de Gestión de Gimnasio",
   description: "Plataforma administrativa para gimnasio Bunker",
   manifest: "/manifest.json",
+  applicationName: "Bunker Admin",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Bunker Admin",
+  },
+  icons: {
+    apple: "/icons/icon-192x192.png",
   },
 };
 
