@@ -35,9 +35,14 @@ export function useTrainerMembers(trainerId?: string) {
       return;
     }
 
-    const membersList = data
-      .map((tm: any) => tm.members)
-      .filter(Boolean) as Member[];
+    // Type definition for the joined query result
+    type TrainerMemberWithMember = {
+      members: Member;
+    };
+
+    const membersList = (data as unknown as TrainerMemberWithMember[])
+      .map((tm) => tm.members)
+      .filter(Boolean);
 
     setMembers(membersList);
     setLoading(false);
@@ -79,7 +84,12 @@ export function useMemberTrainer(memberId?: string) {
       return;
     }
 
-    setTrainer((data as any)?.staff as Staff | null);
+    // Type definition for the joined query result
+    type TrainerMemberWithStaff = {
+      staff: Staff;
+    };
+
+    setTrainer((data as unknown as TrainerMemberWithStaff)?.staff || null);
     setLoading(false);
   }, [memberId, supabase]);
 

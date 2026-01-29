@@ -97,14 +97,22 @@ export default function TrainerSessionDetailPage() {
 
       if (error) throw error;
       router.push("/trainer/training");
-    } catch (err: any) {
-      alert("Error al eliminar: " + (err?.message || "Error desconocido"));
+      router.push("/trainer/training");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error al eliminar: " + errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const startEditExercise = (ex: any) => {
+  const startEditExercise = (ex: {
+    id: string;
+    sets_completed: number | null;
+    reps_completed: string | null;
+    weight: number | null;
+    notes: string | null;
+  }) => {
     setEditingExercise(ex.id);
     setEditValues({
       sets_completed: ex.sets_completed || 0,
@@ -130,8 +138,10 @@ export default function TrainerSessionDetailPage() {
       if (error) throw error;
       setEditingExercise(null);
       await fetchSession();
-    } catch (err: any) {
-      alert("Error al guardar: " + (err?.message || "Error desconocido"));
+      await fetchSession();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error al guardar: " + errorMessage);
     }
   };
 
@@ -144,8 +154,10 @@ export default function TrainerSessionDetailPage() {
 
       if (error) throw error;
       await fetchSession();
-    } catch (err: any) {
-      alert("Error al eliminar ejercicio: " + (err?.message || "Error desconocido"));
+      await fetchSession();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error al eliminar ejercicio: " + errorMessage);
     }
   };
 

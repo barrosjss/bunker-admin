@@ -72,9 +72,10 @@ export default function TrainerTrainingPage() {
         data.exercises
       );
       closeModal();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating session:", err);
-      alert("Error al guardar la sesión: " + (err?.message || "Error desconocido"));
+      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error al guardar la sesión: " + errorMessage);
     } finally {
       setIsSubmitting(false);
     }
