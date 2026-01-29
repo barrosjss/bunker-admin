@@ -10,13 +10,14 @@ import {
   Textarea,
   Card,
 } from "@/components/ui";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { ChevronLeft, Trash2 } from "lucide-react";
 import { Member, Exercise, SessionExerciseInsert } from "@/lib/types/database";
 
 const exerciseSchema = z.object({
-  exercise_id: z.string().min(1, "Selecciona un ejercicio"),
-  sets_completed: z.number().min(1, "Mínimo 1 serie"),
-  reps_completed: z.string().min(1, "Indica las repeticiones"),
+  exercise_id: z.string().min(1),
+  exercise_name: z.string(),
+  sets_completed: z.number().min(1, "Min 1"),
+  reps_completed: z.string().min(1, "Requerido"),
   weight: z.number().optional(),
   notes: z.string().optional(),
 });
@@ -34,6 +35,7 @@ type SessionFormData = {
   notes?: string;
   exercises: {
     exercise_id: string;
+    exercise_name: string;
     sets_completed: number;
     reps_completed: string;
     weight?: number;
@@ -43,21 +45,23 @@ type SessionFormData = {
 
 interface SessionFormProps {
   members: Member[];
-  exercises: Exercise[];
+  selectedExercises: Exercise[];
   defaultMemberId?: string;
   onSubmit: (data: {
     session: { member_id: string; date: string; notes?: string };
     exercises: SessionExerciseInsert[];
   }) => Promise<void>;
+  onBack: () => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
 export function SessionForm({
   members,
-  exercises,
+  selectedExercises,
   defaultMemberId,
   onSubmit,
+  onBack,
   onCancel,
   isLoading,
 }: SessionFormProps) {
@@ -72,19 +76,18 @@ export function SessionForm({
       member_id: defaultMemberId || "",
       date: new Date().toISOString().split("T")[0],
       notes: "",
-      exercises: [
-        {
-          exercise_id: "",
-          sets_completed: 3,
-          reps_completed: "10",
-          weight: 0,
-          notes: "",
-        },
-      ],
+      exercises: selectedExercises.map((ex) => ({
+        exercise_id: ex.id,
+        exercise_name: ex.name,
+        sets_completed: 3,
+        reps_completed: "10",
+        weight: 0,
+        notes: "",
+      })),
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, remove } = useFieldArray({
     control,
     name: "exercises",
   });
@@ -98,7 +101,7 @@ export function SessionForm({
         weight: ex.weight || null,
         notes: ex.notes || null,
         order_index: index,
-        session_id: "", // Will be set by the hook
+        session_id: "",
       })
     );
 
@@ -111,14 +114,6 @@ export function SessionForm({
       exercises: sessionExercises,
     });
   };
-
-  // Group exercises by muscle group
-  const groupedExercises = exercises.reduce((acc, exercise) => {
-    const group = exercise.muscle_group || "Otros";
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(exercise);
-    return acc;
-  }, {} as Record<string, Exercise[]>);
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
@@ -142,24 +137,9 @@ export function SessionForm({
       {/* Exercises */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-text-primary">Ejercicios</h3>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() =>
-              append({
-                exercise_id: "",
-                sets_completed: 3,
-                reps_completed: "10",
-                weight: 0,
-                notes: "",
-              })
-            }
-            leftIcon={<Plus className="h-4 w-4" />}
-          >
-            Agregar ejercicio
-          </Button>
+          <h3 className="font-semibold text-text-primary">
+            Ejercicios ({fields.length})
+          </h3>
         </div>
 
         {errors.exercises?.message && (
@@ -169,64 +149,60 @@ export function SessionForm({
         <div className="space-y-4">
           {fields.map((field, index) => (
             <Card key={field.id} variant="elevated" padding="sm">
-              <div className="flex items-start gap-3">
-                <div className="pt-3 text-text-secondary cursor-move">
-                  <GripVertical className="h-5 w-5" />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-text-primary text-sm">
+                    {field.exercise_name}
+                  </span>
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(index)}
+                      className="text-danger hover:text-danger hover:bg-danger/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
 
-                <div className="flex-1 space-y-3">
-                  <Select
-                    placeholder="Selecciona un ejercicio"
-                    options={Object.entries(groupedExercises).flatMap(
-                      ([group, exs]) => [
-                        { value: `__group_${group}`, label: `--- ${group} ---` },
-                        ...exs.map((e) => ({ value: e.id, label: e.name })),
-                      ]
-                    )}
-                    error={errors.exercises?.[index]?.exercise_id?.message}
-                    {...register(`exercises.${index}.exercise_id`)}
-                  />
+                <input
+                  type="hidden"
+                  {...register(`exercises.${index}.exercise_id`)}
+                />
+                <input
+                  type="hidden"
+                  {...register(`exercises.${index}.exercise_name`)}
+                />
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <Input
-                      type="number"
-                      label="Series"
-                      placeholder="0"
-                      error={errors.exercises?.[index]?.sets_completed?.message}
-                      {...register(`exercises.${index}.sets_completed`)}
-                    />
-                    <Input
-                      label="Reps"
-                      placeholder="10"
-                      error={errors.exercises?.[index]?.reps_completed?.message}
-                      {...register(`exercises.${index}.reps_completed`)}
-                    />
-                    <Input
-                      type="number"
-                      label="Peso (kg)"
-                      placeholder="0"
-                      step="0.5"
-                      {...register(`exercises.${index}.weight`)}
-                    />
-                  </div>
-
+                <div className="grid grid-cols-3 gap-3">
                   <Input
-                    placeholder="Notas del ejercicio..."
-                    {...register(`exercises.${index}.notes`)}
+                    type="number"
+                    label="Series"
+                    placeholder="3"
+                    error={errors.exercises?.[index]?.sets_completed?.message}
+                    {...register(`exercises.${index}.sets_completed`)}
+                  />
+                  <Input
+                    label="Reps"
+                    placeholder="10"
+                    error={errors.exercises?.[index]?.reps_completed?.message}
+                    {...register(`exercises.${index}.reps_completed`)}
+                  />
+                  <Input
+                    type="number"
+                    label="Peso (kg)"
+                    placeholder="0"
+                    step="0.5"
+                    {...register(`exercises.${index}.weight`)}
                   />
                 </div>
 
-                {fields.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove(index)}
-                    className="text-danger hover:text-danger hover:bg-danger/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                <Input
+                  placeholder="Notas del ejercicio..."
+                  {...register(`exercises.${index}.notes`)}
+                />
               </div>
             </Card>
           ))}
@@ -239,13 +215,23 @@ export function SessionForm({
         {...register("notes")}
       />
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-border">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancelar
+      <div className="flex justify-between pt-4 border-t border-border">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onBack}
+          leftIcon={<ChevronLeft className="h-4 w-4" />}
+        >
+          Volver a ejercicios
         </Button>
-        <Button type="submit" variant="primary" isLoading={isLoading}>
-          Guardar sesión
-        </Button>
+        <div className="flex gap-3">
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="primary" isLoading={isLoading}>
+            Guardar sesión
+          </Button>
+        </div>
       </div>
     </form>
   );

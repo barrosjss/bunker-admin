@@ -9,9 +9,10 @@ import { Phone, Mail, Calendar } from "lucide-react";
 
 interface MemberCardProps {
   member: MemberWithMembership;
+  basePath?: string;
 }
 
-export function MemberCard({ member }: MemberCardProps) {
+export function MemberCard({ member, basePath = "" }: MemberCardProps) {
   const membershipDaysLeft = member.current_membership
     ? daysUntilExpiration(member.current_membership.end_date)
     : null;
@@ -53,7 +54,7 @@ export function MemberCard({ member }: MemberCardProps) {
   };
 
   return (
-    <Link href={`/members/${member.id}`}>
+    <Link href={`${basePath}/members/${member.id}`}>
       <Card hoverable className="h-full">
         <div className="flex items-start gap-4">
           <Avatar

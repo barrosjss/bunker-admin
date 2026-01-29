@@ -6,7 +6,11 @@ import { useTodaySessions } from "@/hooks/useTraining";
 import { formatRelative } from "@/lib/utils/dates";
 import { Dumbbell, ChevronRight, Calendar } from "lucide-react";
 
-export function RecentActivity() {
+interface RecentActivityProps {
+  basePath?: string;
+}
+
+export function RecentActivity({ basePath = "/trainer" }: RecentActivityProps) {
   const { sessions, loading } = useTodaySessions();
 
   if (loading) {
@@ -50,7 +54,7 @@ export function RecentActivity() {
           {sessions.slice(0, 5).map((session) => (
             <Link
               key={session.id}
-              href={`/training/session/${session.id}`}
+              href={`${basePath}/training/session/${session.id}`}
               className="flex items-center gap-4 p-4 hover:bg-surface-elevated transition-colors"
             >
               <Avatar
@@ -75,7 +79,7 @@ export function RecentActivity() {
 
           {sessions.length > 5 && (
             <Link
-              href="/training"
+              href={`${basePath}/training`}
               className="flex items-center justify-center p-4 text-sm text-primary hover:bg-surface-elevated transition-colors"
             >
               Ver todos ({sessions.length})

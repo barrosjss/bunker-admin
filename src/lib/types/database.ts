@@ -60,6 +60,7 @@ export type Database = {
           status: "active" | "inactive" | "suspended";
           created_at: string;
           updated_at: string;
+          created_by: string | null;
         };
         Insert: {
           id?: string;
@@ -73,6 +74,7 @@ export type Database = {
           status?: "active" | "inactive" | "suspended";
           created_at?: string;
           updated_at?: string;
+          created_by?: string | null;
         };
         Update: {
           id?: string;
@@ -86,8 +88,17 @@ export type Database = {
           status?: "active" | "inactive" | "suspended";
           created_at?: string;
           updated_at?: string;
+          created_by?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "members_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       membership_plans: {
         Row: {
@@ -338,6 +349,52 @@ export type Database = {
           }
         ];
       };
+      trainer_members: {
+        Row: {
+          id: string;
+          trainer_id: string;
+          member_id: string;
+          assigned_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          trainer_id: string;
+          member_id: string;
+          assigned_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          trainer_id?: string;
+          member_id?: string;
+          assigned_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trainer_members_trainer_id_fkey";
+            columns: ["trainer_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "trainer_members_member_id_fkey";
+            columns: ["member_id"];
+            isOneToOne: false;
+            referencedRelation: "members";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "trainer_members_assigned_by_fkey";
+            columns: ["assigned_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       session_exercises: {
         Row: {
           id: string;
@@ -412,6 +469,7 @@ export type RoutineTemplate = Database["public"]["Tables"]["routine_templates"][
 export type RoutineTemplateExercise = Database["public"]["Tables"]["routine_template_exercises"]["Row"];
 export type TrainingSession = Database["public"]["Tables"]["training_sessions"]["Row"];
 export type SessionExercise = Database["public"]["Tables"]["session_exercises"]["Row"];
+export type TrainerMember = Database["public"]["Tables"]["trainer_members"]["Row"];
 
 // Insert types
 export type StaffInsert = Database["public"]["Tables"]["staff"]["Insert"];
@@ -423,6 +481,7 @@ export type RoutineTemplateInsert = Database["public"]["Tables"]["routine_templa
 export type RoutineTemplateExerciseInsert = Database["public"]["Tables"]["routine_template_exercises"]["Insert"];
 export type TrainingSessionInsert = Database["public"]["Tables"]["training_sessions"]["Insert"];
 export type SessionExerciseInsert = Database["public"]["Tables"]["session_exercises"]["Insert"];
+export type TrainerMemberInsert = Database["public"]["Tables"]["trainer_members"]["Insert"];
 
 // Update types
 export type StaffUpdate = Database["public"]["Tables"]["staff"]["Update"];
@@ -434,6 +493,7 @@ export type RoutineTemplateUpdate = Database["public"]["Tables"]["routine_templa
 export type RoutineTemplateExerciseUpdate = Database["public"]["Tables"]["routine_template_exercises"]["Update"];
 export type TrainingSessionUpdate = Database["public"]["Tables"]["training_sessions"]["Update"];
 export type SessionExerciseUpdate = Database["public"]["Tables"]["session_exercises"]["Update"];
+export type TrainerMemberUpdate = Database["public"]["Tables"]["trainer_members"]["Update"];
 
 // Extended types with relations
 export type MembershipWithPlan = Membership & {

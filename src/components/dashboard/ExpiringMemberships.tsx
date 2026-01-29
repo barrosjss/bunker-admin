@@ -6,7 +6,11 @@ import { useExpiringMemberships } from "@/hooks/useMemberships";
 import { formatDate, daysUntilExpiration } from "@/lib/utils/dates";
 import { AlertTriangle, ChevronRight, CheckCircle } from "lucide-react";
 
-export function ExpiringMemberships() {
+interface ExpiringMembershipsProps {
+  basePath?: string;
+}
+
+export function ExpiringMemberships({ basePath = "" }: ExpiringMembershipsProps) {
   const { memberships, loading } = useExpiringMemberships(7);
 
   if (loading) {
@@ -54,7 +58,7 @@ export function ExpiringMemberships() {
             return (
               <Link
                 key={membership.id}
-                href={`/members/${member?.id}`}
+                href={`${basePath}/members/${member?.id}`}
                 className="flex items-center gap-4 p-4 hover:bg-surface-elevated transition-colors"
               >
                 <Avatar
@@ -80,7 +84,7 @@ export function ExpiringMemberships() {
 
           {memberships.length > 5 && (
             <Link
-              href="/memberships/expiring"
+              href={`${basePath}/memberships/expiring`}
               className="flex items-center justify-center p-4 text-sm text-primary hover:bg-surface-elevated transition-colors"
             >
               Ver todas ({memberships.length})

@@ -9,9 +9,10 @@ import { Calendar, CreditCard, AlertTriangle, CheckCircle } from "lucide-react";
 interface MembershipStatusProps {
   membership: (Membership & { membership_plans?: { name: string; duration_days?: number } | null }) | null;
   onRenew?: () => void;
+  showRenewButton?: boolean;
 }
 
-export function MembershipStatus({ membership, onRenew }: MembershipStatusProps) {
+export function MembershipStatus({ membership, onRenew, showRenewButton = true }: MembershipStatusProps) {
   if (!membership) {
     return (
       <Card className="border-warning/30 bg-warning/5">
@@ -27,7 +28,7 @@ export function MembershipStatus({ membership, onRenew }: MembershipStatusProps)
               Este miembro no tiene una membresía activa. Registra un pago para
               activar su membresía.
             </p>
-            {onRenew && (
+            {showRenewButton && onRenew && (
               <Button variant="primary" size="sm" onClick={onRenew}>
                 Registrar pago
               </Button>
@@ -113,7 +114,7 @@ export function MembershipStatus({ membership, onRenew }: MembershipStatusProps)
 
           <p className={`text-sm mt-2 text-${config.color}`}>{config.message}</p>
 
-          {(expired || isExpiringSoon) && onRenew && (
+          {(expired || isExpiringSoon) && showRenewButton && onRenew && (
             <Button
               variant="primary"
               size="sm"

@@ -15,4 +15,5 @@ const pwaConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const nextConfig = {};
 
-export default pwaConfig(nextConfig);
+// export default pwaConfig(nextConfig);
+export default nextConfig;

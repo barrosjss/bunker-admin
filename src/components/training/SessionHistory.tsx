@@ -9,9 +9,10 @@ import { Dumbbell, ChevronRight, Calendar } from "lucide-react";
 interface SessionHistoryProps {
   sessions: TrainingSessionWithDetails[];
   showMember?: boolean;
+  basePath?: string;
 }
 
-export function SessionHistory({ sessions, showMember = false }: SessionHistoryProps) {
+export function SessionHistory({ sessions, showMember = false, basePath = "" }: SessionHistoryProps) {
   if (sessions.length === 0) {
     return (
       <EmptyState
@@ -25,7 +26,7 @@ export function SessionHistory({ sessions, showMember = false }: SessionHistoryP
   return (
     <div className="space-y-3">
       {sessions.map((session) => (
-        <Link key={session.id} href={`/training/session/${session.id}`}>
+        <Link key={session.id} href={`${basePath}/training/session/${session.id}`}>
           <Card hoverable className="group">
             <div className="flex items-center gap-4">
               {showMember && session.members && (

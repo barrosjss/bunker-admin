@@ -3,3 +3,4 @@ export { useMemberships, useMembershipPlans, useExpiringMemberships } from "./us
 export { useTrainingSessions, useTodaySessions, useMemberSessions } from "./useTraining";
 export { useExercises, useExercisesByMuscleGroup } from "./useExercises";
 export { useRoutines, useRoutine } from "./useRoutines";
+export { useTrainerMembers, useMemberTrainer, useStaffTrainers, useCurrentTrainerId } from "./useTrainerMembers";
