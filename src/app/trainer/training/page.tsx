@@ -13,13 +13,12 @@ import {
   CardHeader,
   CardTitle,
   Button,
-  Input,
   Modal,
   Spinner,
   Badge,
   Select,
 } from "@/components/ui";
-import { Plus, ChevronLeft, ChevronRight, Calendar, Search } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import {
   format,
   startOfWeek,
@@ -78,7 +77,6 @@ export default function TrainerTrainingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
-    sessions: todaySessions,
     refetch: refetchToday,
   } = useTodaySessions();
   

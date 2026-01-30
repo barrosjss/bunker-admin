@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -29,19 +29,7 @@ const sessionSchema = z.object({
   exercises: z.array(exerciseSchema).min(1, "Agrega al menos un ejercicio"),
 });
 
-type SessionFormData = {
-  member_id: string;
-  date: string;
-  notes?: string;
-  exercises: {
-    exercise_id: string;
-    exercise_name: string;
-    sets_completed: number;
-    reps_completed: string;
-    weight?: number;
-    notes?: string;
-  }[];
-};
+type SessionFormData = z.infer<typeof sessionSchema>;
 
 interface SessionFormProps {
   members: Member[];
@@ -71,7 +59,7 @@ export function SessionForm({
     handleSubmit,
     formState: { errors },
   } = useForm<SessionFormData>({
-    resolver: zodResolver(sessionSchema),
+    resolver: zodResolver(sessionSchema) as Resolver<SessionFormData>,
     defaultValues: {
       member_id: defaultMemberId || "",
       date: new Date().toISOString().split("T")[0],
