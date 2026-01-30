@@ -1,9 +1,13 @@
 "use client";
 
-import { Bell, Search, Menu } from "lucide-react";
+import { Bell, Search, Menu as MenuIcon, LogOut } from "lucide-react";
 import { Button } from "@/components/ui";
 import { Avatar } from "@/components/ui";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { PanelSwitcher } from "./PanelSwitcher";
+import { cn } from "@/lib/utils/formatting";
 
 interface HeaderProps {
   title?: string;
@@ -18,6 +22,28 @@ interface HeaderProps {
 
 export function Header({ title, showSearch = true, onMenuClick, user }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const supabase = createClient();
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border">
@@ -31,7 +57,7 @@ export function Header({ title, showSearch = true, onMenuClick, user }: HeaderPr
               onClick={onMenuClick}
               className="lg:hidden p-2"
             >
-              <Menu className="h-6 w-6" />
+              <MenuIcon className="h-6 w-6" />
             </Button>
           )}
 
@@ -62,10 +88,38 @@ export function Header({ title, showSearch = true, onMenuClick, user }: HeaderPr
             <span className="absolute top-1 right-1 h-2 w-2 bg-danger rounded-full" />
           </Button>
 
-          {/* User */}
+          {/* User Menu Dropdown (Visible on Mobile/Tablet usually) */}
+          <div className="relative" ref={menuRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 lg:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <MenuIcon className="h-6 w-6 text-text-primary" />
+            </Button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-surface-elevated border border-border rounded-xl shadow-xl p-2 z-50">
+                <PanelSwitcher className="w-full justify-start text-sm" />
+                <button
+                  onClick={handleSignOut}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 w-full",
+                    "text-danger hover:bg-danger/10"
+                  )}
+                >
+                  <LogOut className="h-4 w-4 flex-shrink-0" />
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* User Profile (Desktop) */}
           {user && (
-            <div className="flex items-center gap-3 pl-3 border-l border-border">
-              <div className="hidden md:block text-right">
+            <div className="items-center gap-3 pl-3 border-l border-border hidden lg:flex">
+              <div className="text-right">
                 <p className="text-sm font-medium text-text-primary">
                   {user.name}
                 </p>

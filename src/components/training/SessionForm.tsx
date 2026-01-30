@@ -16,9 +16,9 @@ import { Member, Exercise, SessionExerciseInsert } from "@/lib/types/database";
 const exerciseSchema = z.object({
   exercise_id: z.string().min(1),
   exercise_name: z.string(),
-  sets_completed: z.number().min(1, "Min 1"),
+  sets_completed: z.coerce.number().min(1, "Min 1"),
   reps_completed: z.string().min(1, "Requerido"),
-  weight: z.number().optional(),
+  weight: z.coerce.number().optional(),
   notes: z.string().optional(),
 });
 

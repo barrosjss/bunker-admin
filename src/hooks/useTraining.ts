@@ -9,11 +9,22 @@ import {
 } from "@/lib/types/database";
 import { format } from "date-fns";
 
-export function useTrainingSessions(date?: string) {
+export type TrainingFilters = {
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+export function useTrainingSessions(filters?: string | TrainingFilters) {
   const [sessions, setSessions] = useState<TrainingSessionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
+
+  // Parse filters
+  const dateFilter = typeof filters === "string" ? filters : filters?.date;
+  const startDate = typeof filters === "object" ? filters?.startDate : undefined;
+  const endDate = typeof filters === "object" ? filters?.endDate : undefined;
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -32,8 +43,10 @@ export function useTrainingSessions(date?: string) {
       `)
       .order("created_at", { ascending: false });
 
-    if (date) {
-      query = query.eq("date", date);
+    if (dateFilter) {
+      query = query.eq("date", dateFilter);
+    } else if (startDate && endDate) {
+      query = query.gte("date", startDate).lte("date", endDate);
     }
 
     const { data, error } = await query;
@@ -46,7 +59,7 @@ export function useTrainingSessions(date?: string) {
 
     setSessions(data);
     setLoading(false);
-  }, [supabase, date]);
+  }, [supabase, dateFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchSessions();

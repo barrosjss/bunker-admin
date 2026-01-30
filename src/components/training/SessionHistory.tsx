@@ -24,9 +24,13 @@ export function SessionHistory({ sessions, showMember = false, basePath = "" }: 
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-4">
       {sessions.map((session) => (
-        <Link key={session.id} href={`${basePath}/training/session/${session.id}`}>
+        <Link 
+          key={session.id} 
+          href={`${basePath}/training/session/${session.id}`}
+          className="block"
+        >
           <Card hoverable className="group">
             <div className="flex items-center gap-4">
               {showMember && session.members && (
