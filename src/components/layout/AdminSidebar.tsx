@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   Shield,
+  Tag,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PanelSwitcher } from "./PanelSwitcher";
@@ -20,7 +21,7 @@ import { PanelSwitcher } from "./PanelSwitcher";
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Miembros", href: "/admin/members", icon: Users },
-  { name: "Membresías", href: "/admin/memberships", icon: CreditCard },
+  { name: "Planes", href: "/admin/planes", icon: Tag },
   { name: "Ejercicios", href: "/admin/exercises", icon: ClipboardList },
   { name: "Rutinas", href: "/admin/routines", icon: BookOpen },
 ];
@@ -35,8 +36,10 @@ export function AdminSidebar() {
   const supabase = createClient();
 
   const handleSignOut = async () => {
+    // Clear panel preference cookie on logout
+    document.cookie = "bunker_current_panel=; path=/; max-age=0";
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const isActive = (href: string) => {

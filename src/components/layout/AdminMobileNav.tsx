@@ -9,12 +9,14 @@ import {
   CreditCard,
   ClipboardList,
   Settings,
+  Tag,
 } from "lucide-react";
 
 const navigation = [
   { name: "Inicio", href: "/admin", icon: LayoutDashboard },
   { name: "Miembros", href: "/admin/members", icon: Users },
   { name: "Pagos", href: "/admin/memberships", icon: CreditCard },
+  { name: "Planes", href: "/admin/planes", icon: Tag },
   { name: "Ejercicios", href: "/admin/exercises", icon: ClipboardList },
   { name: "Ajustes", href: "/admin/settings", icon: Settings },
 ];

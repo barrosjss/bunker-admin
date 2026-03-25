@@ -19,7 +19,6 @@ import { useRouter } from "next/navigation";
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Miembros", href: "/members", icon: Users },
-  { name: "Membresías", href: "/memberships", icon: CreditCard },
   { name: "Entrenamientos", href: "/training", icon: Dumbbell },
   { name: "Ejercicios", href: "/exercises", icon: ClipboardList },
   { name: "Rutinas", href: "/routines", icon: BookOpen },
@@ -35,8 +34,10 @@ export function Sidebar() {
   const supabase = createClient();
 
   const handleSignOut = async () => {
+    // Clear panel preference cookie on logout
+    document.cookie = "bunker_current_panel=; path=/; max-age=0";
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const isActive = (href: string) => {

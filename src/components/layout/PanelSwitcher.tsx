@@ -14,7 +14,7 @@ export function PanelSwitcher({ className }: PanelSwitcherProps) {
   const handleSwitchPanel = () => {
     // Clear the saved panel preference
     document.cookie = "bunker_current_panel=; path=/; max-age=0";
-    router.push("/");
+    window.location.href = "/";
   };
 
   return (

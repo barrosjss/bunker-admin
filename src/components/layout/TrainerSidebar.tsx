@@ -28,8 +28,10 @@ export function TrainerSidebar() {
   const supabase = createClient();
 
   const handleSignOut = async () => {
+    // Clear panel preference cookie on logout
+    document.cookie = "bunker_current_panel=; path=/; max-age=0";
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const isActive = (href: string) => {

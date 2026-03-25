@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMember, useMembers } from "@/hooks/useMembers";
 import { useMemberSessions } from "@/hooks/useTraining";
 import { useMemberTrainer, useStaffTrainers } from "@/hooks/useTrainerMembers";
-import { MemberForm, MembershipStatus } from "@/components/members";
+import { MemberForm, MembershipStatus, PaymentModal } from "@/components/members";
 import { Header } from "@/components/layout";
 import {
   Card,
@@ -52,6 +52,7 @@ export default function AdminMemberDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAssigningTrainer, setIsAssigningTrainer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const handleUpdate = async (data: MemberInsert) => {
     setIsSubmitting(true);
@@ -200,7 +201,7 @@ export default function AdminMemberDetailPage() {
             </h2>
             <MembershipStatus
               membership={member.current_membership as never}
-              onRenew={() => router.push(`/admin/memberships?member=${memberId}`)}
+              onRenew={() => setIsPaymentModalOpen(true)}
             />
           </div>
 
@@ -382,6 +383,16 @@ export default function AdminMemberDetailPage() {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => {
+          setIsPaymentModalOpen(false);
+          refetch(); // Refetch the member data to show new membership
+        }}
+        preselectedMemberId={memberId}
+      />
     </div>
   );
 }
