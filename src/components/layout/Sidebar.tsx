@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils/formatting";
 import {
   LayoutDashboard,
   Users,
-  CreditCard,
   Dumbbell,
   ClipboardList,
   BookOpen,
@@ -14,7 +13,6 @@ import {
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -30,7 +28,6 @@ const bottomNavigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const supabase = createClient();
 
   const handleSignOut = async () => {

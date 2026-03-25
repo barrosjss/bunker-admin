@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/formatting";
 import {
   LayoutDashboard,
@@ -24,7 +24,6 @@ const navigation = [
 
 export function TrainerSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const supabase = createClient();
 
   const handleSignOut = async () => {

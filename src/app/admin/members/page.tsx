@@ -37,7 +37,7 @@ export default function AdminMembersPage() {
     if (!dateString) return "-";
     try {
       return format(new Date(dateString), "dd MMM yyyy", { locale: es });
-    } catch (e) {
+    } catch {
       return "-";
     }
   };
@@ -85,7 +85,11 @@ export default function AdminMembersPage() {
     }
   };
 
-  const handleWhatsAppClick = (e: React.MouseEvent, member: any, statusObj: any) => {
+  const handleWhatsAppClick = (
+    e: React.MouseEvent,
+    member: { name: string; phone?: string | null; current_membership?: { end_date?: string } | null },
+    statusObj: { status: string }
+  ) => {
     e.stopPropagation();
     if (!member.phone || statusObj.status === "none" || statusObj.status === "active") return;
     
@@ -308,7 +312,7 @@ export default function AdminMembersPage() {
                           <div className="flex items-center justify-end gap-2">
                             {(membershipStatus.status === "expiring" || membershipStatus.status === "expired") && member.phone && (
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 className="px-2"
                                 onClick={(e) => handleWhatsAppClick(e, member, membershipStatus)}

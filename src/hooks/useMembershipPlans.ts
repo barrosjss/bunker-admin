@@ -31,9 +31,10 @@ export function useMembershipPlans() {
 
       if (error) throw error;
       setPlans(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching membership plans:", err);
-      setError(err.message || "Error al cargar los planes");
+      const message = err instanceof Error ? err.message : "Error al cargar los planes";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -50,9 +51,10 @@ export function useMembershipPlans() {
       if (error) throw error;
       setPlans((prev) => [...prev, data].sort((a, b) => a.price - b.price));
       return { data, error: null };
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error creating plan:", err);
-      return { data: null, error: err.message };
+      const message = err instanceof Error ? err.message : "Error al crear plan";
+      return { data: null, error: message };
     }
   };
 
@@ -72,14 +74,16 @@ export function useMembershipPlans() {
           .sort((a, b) => a.price - b.price)
       );
       return { data, error: null };
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error updating plan:", err);
-      return { data: null, error: err.message };
+      const message = err instanceof Error ? err.message : "Error al actualizar plan";
+      return { data: null, error: message };
     }
   };
 
   useEffect(() => {
     fetchPlans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

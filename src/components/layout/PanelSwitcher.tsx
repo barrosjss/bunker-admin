@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils/formatting";
 
@@ -9,8 +8,6 @@ interface PanelSwitcherProps {
 }
 
 export function PanelSwitcher({ className }: PanelSwitcherProps) {
-  const router = useRouter();
-
   const handleSwitchPanel = () => {
     // Clear the saved panel preference
     document.cookie = "bunker_current_panel=; path=/; max-age=0";
