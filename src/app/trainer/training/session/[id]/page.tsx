@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { TrainingSessionWithDetails } from "@/lib/types/database";
+import { TrainingSessionWithDetails } from "@/lib/supabase/types/database";
 import { Header } from "@/components/layout";
 import {
   Card,
@@ -217,10 +217,10 @@ export default function TrainerSessionDetailPage() {
                     <Calendar className="h-4 w-4" />
                     {formatDate(session.date)}
                   </div>
-                  {session.staff && (
+                  {session.establishment_users && (
                     <div className="flex items-center gap-1">
                       <User className="h-4 w-4" />
-                      {session.staff.name}
+                      {session.establishment_users.name}
                     </div>
                   )}
                 </div>

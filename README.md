@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bunker Admin
 
-## Getting Started
+Plataforma SaaS multi-tenant para la gestión de gimnasios. Permite a múltiples establecimientos administrar miembros, entrenadores, rutinas y membresías con aislamiento total de datos entre gyms.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Next.js 14** (App Router) — framework principal
+- **Supabase** — base de datos (Postgres + Auth + RLS)
+- **Tailwind CSS** — estilos
+- **React Hook Form + Zod** — formularios y validación
+
+## Estructura del proyecto
+
+```
+src/
+├── app/
+│   ├── (auth)/login/       # Login
+│   └── [slug]/             # Rutas por establecimiento
+│       ├── register/       # Formulario público de registro
+│       ├── owner/          # Dashboard dueño
+│       ├── admin/          # Dashboard administrador
+│       └── trainer/        # Dashboard entrenador
+├── components/             # UI, layout, members, training
+├── hooks/                  # Custom hooks
+└── lib/supabase/           # Clientes, tipos y migraciones
+
+docs/
+├── architecture.md         # Diseño global del sistema
+├── decisions/              # ADRs (por qués técnicos)
+└── runbooks/               # Guías operacionales
+
+knowledge/vision.md         # Propósito y modelo de negocio
+requirements/epics.md       # Épicas e historias de usuario
+AGENTS.md                   # Fuente de verdad para agentes IA
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Desarrollo local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+cp .env.local.example .env.local   # Agregar NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Abrir [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+## Base de datos
 
-To learn more about Next.js, take a look at the following resources:
+Las migraciones están en `src/lib/supabase/migrations/` como referencia histórica. Se aplican manualmente desde el panel web de Supabase. Ver `docs/runbooks/apply-migration.md`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentación
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Documento | Contenido |
+|-----------|-----------|
+| `AGENTS.md` | Reglas y contexto para agentes IA |
+| `docs/architecture.md` | Arquitectura, schema, roles y convenciones |
+| `docs/decisions/` | ADRs con decisiones técnicas tomadas |
+| `docs/runbooks/` | Guías paso a paso para operaciones recurrentes |
+| `knowledge/vision.md` | Propósito del producto y modelo de negocio |
+| `requirements/epics.md` | Funcionalidades y alcance |

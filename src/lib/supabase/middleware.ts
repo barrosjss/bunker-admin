@@ -41,9 +41,16 @@ export async function updateSession(request: NextRequest) {
   const isAdminRoute = pathname.startsWith("/admin");
   const isTrainerRoute = pathname.startsWith("/trainer");
   const isPanelSelector = pathname === "/";
+  // Rutas públicas: /[slug]/register (sin autenticación requerida)
+  const isPublicRegisterRoute = /^\/[^/]+\/register(\/.*)?$/.test(pathname);
 
   // Skip middleware for API routes and static files
   if (isApiRoute) {
+    return supabaseResponse;
+  }
+
+  // Rutas públicas: pasar sin verificar auth
+  if (isPublicRegisterRoute) {
     return supabaseResponse;
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, Badge, Button } from "@/components/ui";
-import { Membership } from "@/lib/types/database";
+import { Membership } from "@/lib/supabase/types/database";
 import { formatDate, daysUntilExpiration, isExpired } from "@/lib/utils/dates";
 import { formatCurrency, getPaymentMethodLabel } from "@/lib/utils/formatting";
 import { Calendar, CreditCard, AlertTriangle, CheckCircle } from "lucide-react";

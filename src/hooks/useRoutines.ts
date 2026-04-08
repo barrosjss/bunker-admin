@@ -6,7 +6,7 @@ import {
   RoutineTemplateInsert,
   RoutineTemplateWithExercises,
   RoutineTemplateExerciseInsert,
-} from "@/lib/types/database";
+} from "@/lib/supabase/types/database";
 
 export function useRoutines() {
   const [routines, setRoutines] = useState<RoutineTemplateWithExercises[]>([]);

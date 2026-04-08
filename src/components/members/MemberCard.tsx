@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, Avatar, Badge } from "@/components/ui";
-import { MemberWithMembership } from "@/lib/types/database";
+import { MemberWithMembership } from "@/lib/supabase/types/database";
 import { getMemberStatusLabel } from "@/lib/utils/formatting";
 import { daysUntilExpiration, formatDate } from "@/lib/utils/dates";
 import { Phone, Mail, Calendar } from "lucide-react";

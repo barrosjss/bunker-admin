@@ -6,7 +6,7 @@ import {
   MembershipInsert,
   MembershipPlan,
   MembershipWithPlan,
-} from "@/lib/types/database";
+} from "@/lib/supabase/types/database";
 import { addDays, format } from "date-fns";
 
 export function useMemberships() {

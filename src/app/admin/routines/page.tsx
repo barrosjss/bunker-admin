@@ -25,7 +25,7 @@ import { getDifficultyLabel } from "@/lib/utils/formatting";
 import {
   RoutineTemplateInsert,
   RoutineTemplateExerciseInsert,
-} from "@/lib/types/database";
+} from "@/lib/supabase/types/database";
 
 const routineExerciseSchema = z.object({
   exercise_id: z.string().min(1, "Selecciona un ejercicio"),
@@ -106,11 +106,12 @@ export default function AdminRoutinesPage() {
   const handleCreate = async (data: RoutineFormData) => {
     setIsSubmitting(true);
     try {
-      const routineData: RoutineTemplateInsert = {
+      // TODO: agregar establishment_id cuando se refactorice a /[slug]/admin
+      const routineData = {
         name: data.name,
         description: data.description || null,
         difficulty: data.difficulty,
-      };
+      } as RoutineTemplateInsert;
 
       const exercisesData: RoutineTemplateExerciseInsert[] = data.exercises.map(
         (ex, index) => ({

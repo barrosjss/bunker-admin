@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { formatDate, formatRelative } from "@/lib/utils/dates";
 import { getMemberStatusLabel } from "@/lib/utils/formatting";
-import { MemberInsert } from "@/lib/types/database";
+import { MemberInsert } from "@/lib/supabase/types/database";
 import Link from "next/link";
 
 export default function AdminMemberDetailPage() {

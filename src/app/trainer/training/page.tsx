@@ -33,7 +33,7 @@ import {
   subMonths,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { Exercise, SessionExerciseInsert } from "@/lib/types/database";
+import { Exercise, SessionExerciseInsert } from "@/lib/supabase/types/database";
 
 type ModalStep = "closed" | "select-exercises" | "configure-session";
 type ViewMode = "daily" | "weekly" | "monthly";
@@ -147,13 +147,14 @@ export default function TrainerTrainingPage() {
   }) => {
     setIsSubmitting(true);
     try {
+      // TODO: agregar establishment_id cuando se refactorice a /[slug]/trainer
       await createSession(
         {
           member_id: data.session.member_id,
           trainer_id: trainerId,
           date: data.session.date,
           notes: data.session.notes || null,
-        },
+        } as unknown as Parameters<typeof createSession>[0],
         data.exercises
       );
 

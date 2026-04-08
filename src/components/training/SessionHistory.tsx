@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
-import { TrainingSessionWithDetails } from "@/lib/types/database";
+import { TrainingSessionWithDetails } from "@/lib/supabase/types/database";
 import { formatDate, formatRelative } from "@/lib/utils/dates";
 import { Dumbbell, ChevronRight, Calendar } from "lucide-react";
 
@@ -58,9 +58,9 @@ export function SessionHistory({ sessions, showMember = false, basePath = "" }: 
                   <Badge variant="primary" size="sm">
                     {session.session_exercises?.length || 0} ejercicios
                   </Badge>
-                  {session.staff && (
+                  {session.establishment_users && (
                     <span className="text-xs text-text-secondary">
-                      Entrenador: {session.staff.name}
+                      Entrenador: {session.establishment_users.name}
                     </span>
                   )}
                 </div>

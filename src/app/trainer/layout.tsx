@@ -18,14 +18,14 @@ export default async function TrainerLayout({
     redirect("/login");
   }
 
-  // Check if user has staff record
-  const { data: staff } = await supabase
-    .from("staff")
+  // TODO: reemplazar con lógica de /[slug]/trainer cuando se refactoricen los dashboards
+  const { data: euData } = await supabase
+    .from("establishment_users")
     .select("role")
-    .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+    .eq("user_id", user.id)
     .single();
 
-  if (!staff) {
+  if (!euData) {
     redirect("/login");
   }
 

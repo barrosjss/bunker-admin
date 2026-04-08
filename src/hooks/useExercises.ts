@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Exercise, ExerciseInsert, ExerciseUpdate } from "@/lib/types/database";
+import { Exercise, ExerciseInsert, ExerciseUpdate } from "@/lib/supabase/types/database";
 
 export function useExercises() {
   const [exercises, setExercises] = useState<Exercise[]>([]);

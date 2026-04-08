@@ -8,7 +8,7 @@ import { MemberForm } from "@/components/members";
 import { Header } from "@/components/layout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui";
 import { ArrowLeft } from "lucide-react";
-import { MemberInsert } from "@/lib/types/database";
+import { MemberInsert } from "@/lib/supabase/types/database";
 
 export default function AdminNewMemberPage() {
   const router = useRouter();

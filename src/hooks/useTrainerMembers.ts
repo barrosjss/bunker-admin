@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Member, Staff } from "@/lib/types/database";
+import { Member, EstablishmentUser, TrainerMemberInsert } from "@/lib/supabase/types/database";
 
 export function useTrainerMembers(trainerId?: string) {
   const [members, setMembers] = useState<Member[]>([]);
@@ -56,7 +56,7 @@ export function useTrainerMembers(trainerId?: string) {
 }
 
 export function useMemberTrainer(memberId?: string) {
-  const [trainer, setTrainer] = useState<Staff | null>(null);
+  const [trainer, setTrainer] = useState<EstablishmentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -74,7 +74,7 @@ export function useMemberTrainer(memberId?: string) {
       .select(`
         id,
         trainer_id,
-        staff!trainer_members_trainer_id_fkey (*)
+        establishment_users!trainer_members_trainer_id_fkey (*)
       `)
       .eq("member_id", memberId)
       .maybeSingle();
@@ -84,12 +84,11 @@ export function useMemberTrainer(memberId?: string) {
       return;
     }
 
-    // Type definition for the joined query result
-    type TrainerMemberWithStaff = {
-      staff: Staff;
+    type TrainerMemberWithUser = {
+      establishment_users: EstablishmentUser;
     };
 
-    setTrainer((data as unknown as TrainerMemberWithStaff)?.staff || null);
+    setTrainer((data as unknown as TrainerMemberWithUser)?.establishment_users || null);
     setLoading(false);
   }, [memberId, supabase]);
 
@@ -104,9 +103,9 @@ export function useMemberTrainer(memberId?: string) {
       .delete()
       .eq("member_id", memberId!);
 
-    const { error } = await supabase
-      .from("trainer_members")
-      .insert({ trainer_id: trainerId, member_id: memberId! });
+    // TODO: agregar establishment_id cuando se refactorice a /[slug]/admin
+    const insertData = { trainer_id: trainerId, member_id: memberId! } as unknown as TrainerMemberInsert;
+    const { error } = await supabase.from("trainer_members").insert(insertData);
 
     if (error) throw error;
     await fetchMemberTrainer();
@@ -126,14 +125,14 @@ export function useMemberTrainer(memberId?: string) {
 }
 
 export function useStaffTrainers() {
-  const [trainers, setTrainers] = useState<Staff[]>([]);
+  const [trainers, setTrainers] = useState<EstablishmentUser[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
     async function fetch() {
       const { data } = await supabase
-        .from("staff")
+        .from("establishment_users")
         .select("*")
         .eq("role", "trainer")
         .order("name");
@@ -160,14 +159,14 @@ export function useCurrentTrainerId() {
         return;
       }
 
-      const { data: staff } = await supabase
-        .from("staff")
+      const { data: euData } = await supabase
+        .from("establishment_users")
         .select("id")
-        .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+        .eq("user_id", user.id)
         .single();
 
-      if (staff) {
-        setTrainerId(staff.id);
+      if (euData) {
+        setTrainerId(euData.id);
       }
       setLoading(false);
     }

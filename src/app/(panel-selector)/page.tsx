@@ -15,34 +15,29 @@ export default async function PanelSelectorPage() {
     redirect("/login");
   }
 
-  // Get staff data
-  const { data: staff } = await supabase
-    .from("staff")
-    .select("*")
-    .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+  // TODO: reemplazar con lógica de /[slug]/owner cuando se refactoricen los dashboards
+  const { data: euData } = await supabase
+    .from("establishment_users")
+    .select("name, role")
+    .eq("user_id", user.id)
     .single();
 
-  // No staff record - show error
-  if (!staff) {
+  if (!euData) {
     return <NoAccessError email={user.email || ""} />;
   }
 
-  // If user is trainer only (not admin), redirect directly to trainer panel
-  if (staff.role !== "admin") {
+  if (euData.role !== "admin" && euData.role !== "owner") {
     redirect("/trainer");
   }
 
-  // Check for saved panel preference in cookie
   const cookieStore = await cookies();
   const savedPanel = cookieStore.get("bunker_current_panel")?.value;
 
-  // If there's a saved panel preference, redirect to it
   if (savedPanel === "admin") {
     redirect("/admin");
   } else if (savedPanel === "trainer") {
     redirect("/trainer");
   }
 
-  // Show panel selector for admins
-  return <PanelSelector staffName={staff.name || "Usuario"} />;
+  return <PanelSelector staffName={euData.name || "Usuario"} />;
 }

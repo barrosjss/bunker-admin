@@ -78,13 +78,14 @@ export default function AdminSettingsPage() {
   const handleCreatePlan = async (data: PlanFormData) => {
     setIsSubmitting(true);
     try {
+      // TODO: agregar establishment_id cuando se refactorice a /[slug]/admin
       await createPlan({
         name: data.name,
         description: data.description || null,
         duration_days: data.duration_days,
         price: data.price,
         is_active: true,
-      });
+      } as unknown as Parameters<typeof createPlan>[0]);
       reset();
       setIsCreatingPlan(false);
     } catch (err) {

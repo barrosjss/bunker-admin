@@ -6,7 +6,7 @@ import {
   TrainingSessionInsert,
   TrainingSessionWithDetails,
   SessionExerciseInsert,
-} from "@/lib/types/database";
+} from "@/lib/supabase/types/database";
 import { format } from "date-fns";
 
 export type TrainingFilters = {

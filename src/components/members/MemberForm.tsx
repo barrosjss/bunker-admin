@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Input, Textarea, Select } from "@/components/ui";
-import { Member, MemberInsert } from "@/lib/types/database";
+import { Member, MemberInsert } from "@/lib/supabase/types/database";
 
 const memberSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -49,14 +49,15 @@ export function MemberForm({
   });
 
   const handleFormSubmit = async (data: MemberFormData) => {
-    const memberData: MemberInsert = {
+    // TODO: agregar establishment_id cuando se refactorice a /[slug]/admin
+    const memberData = {
       ...data,
       email: data.email || null,
       phone: data.phone || null,
       emergency_contact: data.emergency_contact || null,
       birth_date: data.birth_date || null,
       notes: data.notes || null,
-    };
+    } as MemberInsert;
     await onSubmit(memberData);
   };
 

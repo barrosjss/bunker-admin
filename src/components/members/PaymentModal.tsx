@@ -10,7 +10,7 @@ import { useMemberships, useMembershipPlans } from "@/hooks/useMemberships";
 import { useMembers } from "@/hooks/useMembers";
 import { calculateEndDate, formatDate } from "@/lib/utils/dates";
 import { formatCurrency } from "@/lib/utils/formatting";
-import { MembershipInsert } from "@/lib/types/database";
+import { MembershipInsert } from "@/lib/supabase/types/database";
 
 const paymentSchema = z.object({
   member_id: z.string().min(1, "Selecciona un miembro"),

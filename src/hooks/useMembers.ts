@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Member, MemberInsert, MemberUpdate, MemberWithMembership } from "@/lib/types/database";
+import { Member, MemberInsert, MemberUpdate, MemberWithMembership } from "@/lib/supabase/types/database";
 
 export function useMembers() {
   const [members, setMembers] = useState<MemberWithMembership[]>([]);

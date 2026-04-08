@@ -42,9 +42,11 @@ export function useMembershipPlans() {
 
   const createPlan = async (input: CreateMembershipPlanInput) => {
     try {
+      // TODO: agregar establishment_id cuando se refactorice a /[slug]/admin
       const { data, error } = await supabase
         .from("membership_plans")
-        .insert([input])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert([input as any])
         .select()
         .single();
 

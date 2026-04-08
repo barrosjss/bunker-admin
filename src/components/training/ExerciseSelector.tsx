@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Exercise } from "@/lib/types/database";
+import { Exercise } from "@/lib/supabase/types/database";
 import { Card, Button, Badge } from "@/components/ui";
 import { Check, ChevronLeft, Dumbbell } from "lucide-react";
 

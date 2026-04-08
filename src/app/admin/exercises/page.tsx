@@ -18,7 +18,7 @@ import { Plus, Search, Dumbbell, Edit, Trash2, Video } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ExerciseInsert } from "@/lib/types/database";
+import { ExerciseInsert } from "@/lib/supabase/types/database";
 
 const muscleGroups = [
   "Pecho",

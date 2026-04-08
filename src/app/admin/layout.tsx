@@ -18,14 +18,14 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  // Check if user has staff record with admin role
-  const { data: staff } = await supabase
-    .from("staff")
+  // TODO: reemplazar con lógica de /[slug]/admin cuando se refactoricen los dashboards
+  const { data: euData } = await supabase
+    .from("establishment_users")
     .select("role")
-    .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+    .eq("user_id", user.id)
     .single();
 
-  if (!staff || staff.role !== "admin") {
+  if (!euData || euData.role !== "admin") {
     redirect("/trainer");
   }
 

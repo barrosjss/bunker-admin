@@ -11,7 +11,7 @@ import {
   Card,
 } from "@/components/ui";
 import { ChevronLeft, Trash2 } from "lucide-react";
-import { Member, Exercise, SessionExerciseInsert } from "@/lib/types/database";
+import { Member, Exercise, SessionExerciseInsert } from "@/lib/supabase/types/database";
 
 const exerciseSchema = z.object({
   exercise_id: z.string().min(1),
