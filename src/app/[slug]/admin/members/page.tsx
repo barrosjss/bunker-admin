@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, use } from "react";
+import { useState, useMemo, use, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMembers } from "@/hooks/useMembers";
 import {
@@ -36,8 +36,7 @@ function formatDate(dateString?: string | null) {
   catch { return "-"; }
 }
 
-export default function AdminMembersPage({ params }: Props) {
-  use(params); // slug disponible vía layout
+function MembersContent() {
   const searchParams = useSearchParams();
   const initialFilter = searchParams.get("filter") || "all";
 
@@ -285,5 +284,18 @@ export default function AdminMembersPage({ params }: Props) {
         preselectedMemberId={selectedMemberId}
       />
     </div>
+  );
+}
+
+export default function AdminMembersPage({ params }: Props) {
+  use(params);
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner size="lg" />
+      </div>
+    }>
+      <MembersContent />
+    </Suspense>
   );
 }
