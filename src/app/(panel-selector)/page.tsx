@@ -1,43 +1,36 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { PanelSelector } from "./PanelSelector";
 import { NoAccessError } from "./NoAccessError";
 
-export default async function PanelSelectorPage() {
+export default async function RootPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
-  // TODO: reemplazar con lógica de /[slug]/owner cuando se refactoricen los dashboards
+  // Obtener el establecimiento y rol del usuario autenticado
   const { data: euData } = await supabase
     .from("establishment_users")
-    .select("name, role")
+    .select("role, establishments(slug)")
     .eq("user_id", user.id)
+    .eq("is_active", true)
     .single();
 
   if (!euData) {
     return <NoAccessError email={user.email || ""} />;
   }
 
-  if (euData.role !== "admin" && euData.role !== "owner") {
-    redirect("/trainer");
+  const establishment = euData.establishments as { slug: string } | null;
+  if (!establishment?.slug) {
+    return <NoAccessError email={user.email || ""} />;
   }
 
-  const cookieStore = await cookies();
-  const savedPanel = cookieStore.get("bunker_current_panel")?.value;
+  const { slug } = establishment;
+  const { role } = euData;
 
-  if (savedPanel === "admin") {
-    redirect("/admin");
-  } else if (savedPanel === "trainer") {
-    redirect("/trainer");
-  }
+  if (role === "owner" || role === "admin") redirect(`/${slug}/admin`);
+  if (role === "trainer") redirect(`/${slug}/trainer`);
 
-  return <PanelSelector staffName={euData.name || "Usuario"} />;
+  return <NoAccessError email={user.email || ""} />;
 }

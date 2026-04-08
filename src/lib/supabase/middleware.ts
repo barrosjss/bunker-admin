@@ -61,7 +61,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from login page to panel selector
+  // Redirect authenticated users away from login — la raíz "/" maneja el redirect inteligente por slug/rol
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
