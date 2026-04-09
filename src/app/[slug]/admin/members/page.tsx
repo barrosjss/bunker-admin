@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, use, Suspense } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMembers } from "@/hooks/useMembers";
 import {
@@ -13,10 +13,6 @@ import { Search, Users, Mail, Phone, MessageCircle } from "lucide-react";
 import { format, differenceInDays, startOfDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { MemberWithMembership } from "@/lib/supabase/types/database";
-
-interface Props {
-  params: Promise<{ slug: string }>;
-}
 
 type MembershipStatusKey = "none" | "active" | "expiring" | "expired";
 
@@ -287,8 +283,7 @@ function MembersContent() {
   );
 }
 
-export default function AdminMembersPage({ params }: Props) {
-  use(params);
+export default function AdminMembersPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">
