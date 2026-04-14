@@ -77,6 +77,16 @@ export function useMemberships() {
     return data;
   };
 
+  const cancelMembership = async (id: string) => {
+    const { error } = await supabase
+      .from("memberships")
+      .update({ status: "cancelled" })
+      .eq("id", id);
+
+    if (error) throw error;
+    await fetchMemberships();
+  };
+
   return {
     memberships,
     loading,
@@ -84,6 +94,7 @@ export function useMemberships() {
     refetch: fetchMemberships,
     createMembership,
     updateMembership,
+    cancelMembership,
   };
 }
 

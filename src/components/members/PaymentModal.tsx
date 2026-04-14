@@ -34,12 +34,14 @@ export interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   preselectedMemberId?: string;
+  preselectedPlanId?: string;
 }
 
 export function PaymentModal({
   isOpen,
   onClose,
   preselectedMemberId,
+  preselectedPlanId,
 }: PaymentModalProps) {
   const { createMembership } = useMemberships();
   const { plans } = useMembershipPlans();
@@ -56,7 +58,7 @@ export function PaymentModal({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       member_id: preselectedMemberId || "",
-      plan_id: "",
+      plan_id: preselectedPlanId || "",
       start_date: format(new Date(), "yyyy-MM-dd"),
       amount_paid: undefined,
       payment_method: "cash",
@@ -65,10 +67,14 @@ export function PaymentModal({
   });
 
   useEffect(() => {
-    if (preselectedMemberId && isOpen) {
-      setValue("member_id", preselectedMemberId);
+    if (!isOpen) return;
+    if (preselectedMemberId) setValue("member_id", preselectedMemberId);
+    if (preselectedPlanId) {
+      setValue("plan_id", preselectedPlanId);
+      const plan = plans.find((p) => p.id === preselectedPlanId);
+      if (plan) setValue("amount_paid", plan.price);
     }
-  }, [preselectedMemberId, isOpen, setValue]);
+  }, [preselectedMemberId, preselectedPlanId, isOpen, plans, setValue]);
 
   const selectedPlanId = watch("plan_id");
   const startDate = watch("start_date");

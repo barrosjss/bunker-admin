@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { Modal, ModalFooter, Select, Input, Button } from "@/components/ui";
 import { useMemberships, useMembershipPlans } from "@/hooks/useMemberships";
+import { XCircle } from "lucide-react";
 import { calculateEndDate, formatDate } from "@/lib/utils/dates";
 import { formatCurrency } from "@/lib/utils/formatting";
 import type { MemberWithMembership } from "@/lib/supabase/types/database";
@@ -36,9 +37,11 @@ export function EditMembershipModal({
   member,
   onSuccess,
 }: EditMembershipModalProps) {
-  const { updateMembership } = useMemberships();
+  const { updateMembership, cancelMembership } = useMemberships();
   const { plans } = useMembershipPlans();
   const membership = member.current_membership;
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const {
     register,
@@ -83,6 +86,19 @@ export function EditMembershipModal({
   const handlePlanChange = (planId: string) => {
     const plan = plans.find((p) => p.id === planId);
     if (plan) setValue("amount_paid", plan.price);
+  };
+
+  const handleCancel = async () => {
+    if (!membership?.id) return;
+    setCancelling(true);
+    try {
+      await cancelMembership(membership.id);
+      onSuccess();
+      onClose();
+    } finally {
+      setCancelling(false);
+      setConfirmCancel(false);
+    }
   };
 
   const handleSave = async (data: EditFormData) => {
@@ -186,6 +202,28 @@ export function EditMembershipModal({
           placeholder="Observaciones adicionales..."
           {...register("notes")}
         />
+
+        {/* Dar de baja */}
+        {!confirmCancel ? (
+          <button
+            type="button"
+            onClick={() => setConfirmCancel(true)}
+            className="flex items-center gap-1.5 text-sm text-danger hover:underline"
+          >
+            <XCircle className="h-4 w-4" />
+            Dar de baja la membresía
+          </button>
+        ) : (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-danger/10 border border-danger/20">
+            <p className="text-sm text-danger flex-1">¿Confirmas dar de baja? Se cancela de inmediato.</p>
+            <Button type="button" variant="danger" size="sm" isLoading={cancelling} onClick={handleCancel}>
+              Sí, dar de baja
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>
+              No
+            </Button>
+          </div>
+        )}
 
         <ModalFooter>
           <Button type="button" variant="secondary" onClick={onClose}>

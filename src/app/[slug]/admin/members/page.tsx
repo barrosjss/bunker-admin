@@ -36,11 +36,12 @@ function MembersContent() {
   const searchParams = useSearchParams();
   const initialFilter = searchParams.get("filter") || "all";
 
-  const { members, loading, error } = useMembers();
+  const { members, loading, error, refetch } = useMembers();
   const [search, setSearch] = useState("");
   const [membershipFilter, setMembershipFilter] = useState(initialFilter);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>();
+  const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>();
   const [editingMember, setEditingMember] = useState<MemberWithMembership | null>(null);
 
   const filtered = useMemo(() => {
@@ -90,9 +91,10 @@ function MembersContent() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  const openPayment = (e: React.MouseEvent, memberId: string) => {
+  const openPayment = (e: React.MouseEvent, member: MemberWithMembership) => {
     e.stopPropagation();
-    setSelectedMemberId(memberId);
+    setSelectedMemberId(member.id);
+    setSelectedPlanId(member.current_membership?.plan_id ?? undefined);
     setIsPaymentModalOpen(true);
   };
 
@@ -276,7 +278,7 @@ function MembersContent() {
                           <Button
                             variant={hasMembership ? "secondary" : "primary"}
                             size="sm"
-                            onClick={(e) => openPayment(e, member.id)}
+                            onClick={(e) => openPayment(e, member)}
                           >
                             {hasMembership ? "Renovar" : "Activar"}
                           </Button>
@@ -293,8 +295,9 @@ function MembersContent() {
 
       <PaymentModal
         isOpen={isPaymentModalOpen}
-        onClose={() => { setIsPaymentModalOpen(false); setSelectedMemberId(undefined); }}
+        onClose={() => { setIsPaymentModalOpen(false); setSelectedMemberId(undefined); setSelectedPlanId(undefined); }}
         preselectedMemberId={selectedMemberId}
+        preselectedPlanId={selectedPlanId}
       />
 
       {editingMember && (
@@ -302,7 +305,7 @@ function MembersContent() {
           isOpen={!!editingMember}
           onClose={() => setEditingMember(null)}
           member={editingMember}
-          onSuccess={() => setEditingMember(null)}
+          onSuccess={() => { setEditingMember(null); refetch(); }}
         />
       )}
     </div>
