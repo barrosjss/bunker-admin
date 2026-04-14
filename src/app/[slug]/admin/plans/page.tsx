@@ -59,6 +59,8 @@ interface PlanModalProps {
 }
 
 function PlanModal({ isOpen, onClose, plan, onSave }: PlanModalProps) {
+  const [serverError, setServerError] = useState<string | null>(null);
+
   const isPreset = plan ? DURATION_PRESETS.some((p) => p.days === plan.duration_days) : false;
   const defaultDurationType = plan
     ? (isPreset ? String(plan.duration_days) as PlanFormData["duration_type"] : "custom")
@@ -87,7 +89,17 @@ function PlanModal({ isOpen, onClose, plan, onSave }: PlanModalProps) {
 
   const handleClose = () => {
     reset();
+    setServerError(null);
     onClose();
+  };
+
+  const handleSubmitWithError = async (data: PlanFormData) => {
+    setServerError(null);
+    try {
+      await onSave(data);
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Error al guardar el plan");
+    }
   };
 
   return (
@@ -97,7 +109,12 @@ function PlanModal({ isOpen, onClose, plan, onSave }: PlanModalProps) {
       title={plan ? "Editar plan" : "Nuevo plan"}
       size="md"
     >
-      <form onSubmit={handleSubmit(onSave)} className="space-y-4">
+      <form onSubmit={handleSubmit(handleSubmitWithError)} className="space-y-4">
+        {serverError && (
+          <div className="p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
+            {serverError}
+          </div>
+        )}
         <Input
           label="Título *"
           placeholder="Ej. Mensualidad, Plan Anual..."
@@ -261,7 +278,6 @@ export default function AdminPlansPage() {
   };
 
   const handleSave = async (data: PlanFormData) => {
-    setActionError(null);
     const duration_days = getDurationDays(data);
     const payload = {
       name: data.name,
@@ -276,8 +292,7 @@ export default function AdminPlansPage() {
       : await createPlan(payload);
 
     if (result.error) {
-      setActionError(result.error);
-      return;
+      throw new Error(result.error);
     }
     setIsModalOpen(false);
   };
