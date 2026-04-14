@@ -83,6 +83,23 @@ export function useMembershipPlans() {
     }
   };
 
+  const deletePlan = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("membership_plans")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      setPlans((prev) => prev.filter((p) => p.id !== id));
+      return { error: null };
+    } catch (err) {
+      console.error("Error deleting plan:", err);
+      const message = err instanceof Error ? err.message : "Error al eliminar plan";
+      return { error: message };
+    }
+  };
+
   useEffect(() => {
     fetchPlans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,5 +112,6 @@ export function useMembershipPlans() {
     refetch: fetchPlans,
     createPlan,
     updatePlan,
+    deletePlan,
   };
 }

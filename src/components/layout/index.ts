@@ -6,3 +6,5 @@ export { TrainerSidebar } from "./TrainerSidebar";
 export { AdminMobileNav } from "./AdminMobileNav";
 export { TrainerMobileNav } from "./TrainerMobileNav";
 export { PanelSwitcher } from "./PanelSwitcher";
+export { AdminSlugMobileNav } from "./AdminSlugMobileNav";
+export { AdminSlugSidebar } from "./AdminSlugSidebar";

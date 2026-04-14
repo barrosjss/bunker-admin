@@ -9,6 +9,8 @@ import {
   Dumbbell,
   Shield,
   LogOut,
+  Tag,
+  Ticket,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -27,6 +29,8 @@ export function AdminSlugSidebar({ slug, establishmentName }: Props) {
   const navigation = [
     { name: "Dashboard", href: base, icon: LayoutDashboard, exact: true },
     { name: "Miembros", href: `${base}/members`, icon: Users },
+    { name: "Planes", href: `${base}/plans`, icon: Tag },
+    { name: "Cupones", href: `${base}/coupons`, icon: Ticket },
   ];
 
   const isActive = (href: string, exact = false) => {

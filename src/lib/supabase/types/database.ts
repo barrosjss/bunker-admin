@@ -544,6 +544,64 @@ export type Database = {
           }
         ];
       };
+      discount_coupons: {
+        Row: {
+          id: string;
+          establishment_id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          discount_type: "percentage" | "fixed";
+          discount_value: number;
+          min_amount: number;
+          max_uses: number | null;
+          used_count: number;
+          expires_at: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          establishment_id: string;
+          code: string;
+          name: string;
+          description?: string | null;
+          discount_type: "percentage" | "fixed";
+          discount_value: number;
+          min_amount?: number;
+          max_uses?: number | null;
+          used_count?: number;
+          expires_at?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          establishment_id?: string;
+          code?: string;
+          name?: string;
+          description?: string | null;
+          discount_type?: "percentage" | "fixed";
+          discount_value?: number;
+          min_amount?: number;
+          max_uses?: number | null;
+          used_count?: number;
+          expires_at?: string | null;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "discount_coupons_establishment_id_fkey";
+            columns: ["establishment_id"];
+            isOneToOne: false;
+            referencedRelation: "establishments";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       registration_forms: {
         Row: {
           id: string;
@@ -629,6 +687,7 @@ export type TrainerMember = Database["public"]["Tables"]["trainer_members"]["Row
 export type TrainingSession = Database["public"]["Tables"]["training_sessions"]["Row"];
 export type SessionExercise = Database["public"]["Tables"]["session_exercises"]["Row"];
 export type RegistrationForm = Database["public"]["Tables"]["registration_forms"]["Row"];
+export type DiscountCoupon = Database["public"]["Tables"]["discount_coupons"]["Row"];
 
 // ─── Tipos de inserción ───────────────────────────────────────────────────────
 export type EstablishmentInsert = Database["public"]["Tables"]["establishments"]["Insert"];
@@ -643,6 +702,7 @@ export type TrainerMemberInsert = Database["public"]["Tables"]["trainer_members"
 export type TrainingSessionInsert = Database["public"]["Tables"]["training_sessions"]["Insert"];
 export type SessionExerciseInsert = Database["public"]["Tables"]["session_exercises"]["Insert"];
 export type RegistrationFormInsert = Database["public"]["Tables"]["registration_forms"]["Insert"];
+export type DiscountCouponInsert = Database["public"]["Tables"]["discount_coupons"]["Insert"];
 
 // ─── Tipos de actualización ───────────────────────────────────────────────────
 export type EstablishmentUpdate = Database["public"]["Tables"]["establishments"]["Update"];
@@ -657,6 +717,7 @@ export type TrainerMemberUpdate = Database["public"]["Tables"]["trainer_members"
 export type TrainingSessionUpdate = Database["public"]["Tables"]["training_sessions"]["Update"];
 export type SessionExerciseUpdate = Database["public"]["Tables"]["session_exercises"]["Update"];
 export type RegistrationFormUpdate = Database["public"]["Tables"]["registration_forms"]["Update"];
+export type DiscountCouponUpdate = Database["public"]["Tables"]["discount_coupons"]["Update"];
 
 // ─── Tipos extendidos con relaciones ─────────────────────────────────────────
 export type MembershipWithPlan = Membership & {

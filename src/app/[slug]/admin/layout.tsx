@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSlugSidebar } from "@/components/layout/AdminSlugSidebar";
+import { AdminSlugMobileNav } from "@/components/layout/AdminSlugMobileNav";
 
 interface Props {
   children: React.ReactNode;
@@ -39,7 +40,8 @@ export default async function AdminSlugLayout({ children, params }: Props) {
       <div className="hidden lg:block">
         <AdminSlugSidebar slug={slug} establishmentName={establishment.name} />
       </div>
-      <main className="lg:pl-[280px] min-h-screen">
+      <AdminSlugMobileNav slug={slug} />
+      <main className="lg:pl-[280px] min-h-screen pb-20 lg:pb-0">
         {children}
       </main>
     </div>

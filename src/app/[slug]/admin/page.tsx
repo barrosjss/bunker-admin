@@ -1,13 +1,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Users, CreditCard, AlertTriangle, XCircle } from "lucide-react";
+import { Users, CreditCard, AlertTriangle, XCircle, Phone, MessageCircle } from "lucide-react";
 import { Card } from "@/components/ui";
 import { format, addDays } from "date-fns";
 import { es } from "date-fns/locale";
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+function DaysChip({ days }: { days: number }) {
+  if (days < 0) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">
+        Venció hace {Math.abs(days)}d
+      </span>
+    );
+  }
+  if (days === 0) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">
+        Vence hoy
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">
+      Vence en {days}d
+    </span>
+  );
 }
 
 export default async function AdminDashboardPage({ params }: Props) {
@@ -20,12 +42,14 @@ export default async function AdminDashboardPage({ params }: Props) {
   const today = format(new Date(), "yyyy-MM-dd");
   const in7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
-  // Stats en paralelo
+  // Stats + listas de alerta en paralelo
   const [
     { count: totalMembers },
     { count: activeMembers },
     { count: expiringSoon },
     { count: expired },
+    { data: overdueList },
+    { data: expiringList },
   ] = await Promise.all([
     supabase.from("members").select("*", { count: "exact", head: true }),
     supabase
@@ -44,85 +68,216 @@ export default async function AdminDashboardPage({ params }: Props) {
       .select("*", { count: "exact", head: true })
       .eq("status", "active")
       .lt("end_date", today),
+    // Membresías vencidas (mora) — más antiguas primero
+    supabase
+      .from("memberships")
+      .select("id, end_date, members(id, name, phone)")
+      .eq("status", "active")
+      .lt("end_date", today)
+      .order("end_date", { ascending: true })
+      .limit(8),
+    // Membresías por vencer en 7 días — las más próximas primero
+    supabase
+      .from("memberships")
+      .select("id, end_date, members(id, name, phone)")
+      .eq("status", "active")
+      .gte("end_date", today)
+      .lte("end_date", in7Days)
+      .order("end_date", { ascending: true })
+      .limit(8),
   ]);
 
   const todayLabel = format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es });
   const base = `/${slug}/admin`;
 
+  const todayDate = new Date(today);
+
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-primary mb-1">Panel de Administración</h1>
-        <p className="text-text-secondary capitalize">{todayLabel}</p>
+    <div className="p-4 sm:p-6">
+      <div className="mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-text-primary mb-1">Panel de Administración</h1>
+        <p className="text-text-secondary capitalize text-sm">{todayLabel}</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Link href={`${base}/members`}>
           <Card hoverable className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-text-secondary">
-              <Users className="h-4 w-4" />
-              <span className="text-sm">Total miembros</span>
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Total miembros</span>
             </div>
-            <p className="text-3xl font-bold text-text-primary">{totalMembers ?? 0}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-text-primary">{totalMembers ?? 0}</p>
           </Card>
         </Link>
 
         <Link href={`${base}/members?filter=active`}>
           <Card hoverable className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-text-secondary">
-              <CreditCard className="h-4 w-4" />
-              <span className="text-sm">Membresías activas</span>
+              <CreditCard className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Activas</span>
             </div>
-            <p className="text-3xl font-bold text-success">{activeMembers ?? 0}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-success">{activeMembers ?? 0}</p>
           </Card>
         </Link>
 
         <Link href={`${base}/members?filter=expiring`}>
           <Card hoverable className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-text-secondary">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm">Por vencer (7d)</span>
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Por vencer (7d)</span>
             </div>
-            <p className="text-3xl font-bold text-warning">{expiringSoon ?? 0}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-warning">{expiringSoon ?? 0}</p>
           </Card>
         </Link>
 
         <Link href={`${base}/members?filter=expired`}>
           <Card hoverable className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-text-secondary">
-              <XCircle className="h-4 w-4" />
-              <span className="text-sm">Membresías vencidas</span>
+              <XCircle className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">En mora</span>
             </div>
-            <p className="text-3xl font-bold text-danger">{expired ?? 0}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-danger">{expired ?? 0}</p>
           </Card>
         </Link>
       </div>
 
+      {/* Prioridad 1: Miembros en mora */}
+      {overdueList && overdueList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-danger" />
+              <h2 className="text-sm font-semibold text-text-primary">En mora</h2>
+              <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-danger text-white text-xs font-bold">
+                {expired ?? overdueList.length}
+              </span>
+            </div>
+            <Link href={`${base}/members?filter=expired`} className="text-xs text-primary hover:underline">
+              Ver todos
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {overdueList.map((m) => {
+              const member = Array.isArray(m.members) ? m.members[0] : m.members;
+              const endDate = new Date(m.end_date);
+              const diffDays = Math.floor((endDate.getTime() - todayDate.getTime()) / 86400000);
+              const phone = member?.phone?.replace(/\D/g, "");
+              const phoneForWA = phone && phone.length === 10 ? "57" + phone : phone;
+              const waMsg = encodeURIComponent(
+                `Hola ${member?.name}, tu membresía venció el ${format(endDate, "d 'de' MMMM", { locale: es })}. ¡Renuévala pronto para seguir entrenando! 🏋️`
+              );
+              return (
+                <div key={m.id} className="flex items-center justify-between gap-3 bg-surface rounded-xl border border-danger/20 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-text-primary text-sm truncate">{member?.name ?? "—"}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <DaysChip days={diffDays} />
+                      {member?.phone && (
+                        <span className="text-xs text-text-secondary flex items-center gap-1">
+                          <Phone className="h-3 w-3" />{member.phone}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {member?.phone && phoneForWA && (
+                    <a
+                      href={`https://wa.me/${phoneForWA}?text=${waMsg}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 p-2 rounded-lg hover:bg-surface-elevated text-green-500 transition-colors"
+                      title="Enviar recordatorio por WhatsApp"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Prioridad 2: Por vencerse */}
+      {expiringList && expiringList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <h2 className="text-sm font-semibold text-text-primary">Por vencerse (7 días)</h2>
+              <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-warning text-background text-xs font-bold">
+                {expiringSoon ?? expiringList.length}
+              </span>
+            </div>
+            <Link href={`${base}/members?filter=expiring`} className="text-xs text-primary hover:underline">
+              Ver todos
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {expiringList.map((m) => {
+              const member = Array.isArray(m.members) ? m.members[0] : m.members;
+              const endDate = new Date(m.end_date);
+              const diffDays = Math.floor((endDate.getTime() - todayDate.getTime()) / 86400000);
+              const phone = member?.phone?.replace(/\D/g, "");
+              const phoneForWA = phone && phone.length === 10 ? "57" + phone : phone;
+              const waMsg = encodeURIComponent(
+                `Hola ${member?.name}, te recordamos que tu membresía vence el ${format(endDate, "d 'de' MMMM", { locale: es })}. ¡Te esperamos para renovar! 💪`
+              );
+              return (
+                <div key={m.id} className="flex items-center justify-between gap-3 bg-surface rounded-xl border border-warning/20 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-text-primary text-sm truncate">{member?.name ?? "—"}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <DaysChip days={diffDays} />
+                      {member?.phone && (
+                        <span className="text-xs text-text-secondary flex items-center gap-1">
+                          <Phone className="h-3 w-3" />{member.phone}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {member?.phone && phoneForWA && (
+                    <a
+                      href={`https://wa.me/${phoneForWA}?text=${waMsg}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 p-2 rounded-lg hover:bg-surface-elevated text-green-500 transition-colors"
+                      title="Enviar recordatorio por WhatsApp"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Quick links */}
       <div>
-        <h2 className="text-base font-semibold text-text-primary mb-4">Acciones rápidas</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
+        <h2 className="text-sm font-semibold text-text-primary mb-3">Acciones rápidas</h2>
+        <div className="grid grid-cols-2 gap-3">
           <Link href={`${base}/members`}>
-            <Card hoverable className="flex items-center gap-4 py-4">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Card hoverable className="flex items-center gap-3 py-3 px-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Users className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <p className="font-medium text-text-primary">Ver miembros</p>
-                <p className="text-sm text-text-secondary">Gestionar y activar membresías</p>
+              <div className="min-w-0">
+                <p className="font-medium text-text-primary text-sm">Miembros</p>
+                <p className="text-xs text-text-secondary truncate">Gestionar</p>
               </div>
             </Card>
           </Link>
 
-          <Link href={`${base}/members?filter=expiring`}>
-            <Card hoverable className="flex items-center gap-4 py-4">
-              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-5 w-5 text-warning" />
+          <Link href={`${base}/plans`}>
+            <Card hoverable className="flex items-center gap-3 py-3 px-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <CreditCard className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <p className="font-medium text-text-primary">Por vencer</p>
-                <p className="text-sm text-text-secondary">Enviar recordatorios</p>
+              <div className="min-w-0">
+                <p className="font-medium text-text-primary text-sm">Planes</p>
+                <p className="text-xs text-text-secondary truncate">Gestionar</p>
               </div>
             </Card>
           </Link>
