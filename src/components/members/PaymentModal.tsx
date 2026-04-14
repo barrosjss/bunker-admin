@@ -16,7 +16,7 @@ const paymentSchema = z.object({
   member_id: z.string().min(1, "Selecciona un miembro"),
   plan_id: z.string().min(1, "Selecciona un plan"),
   start_date: z.string().min(1, "Selecciona una fecha de inicio"),
-  amount_paid: z.number({ invalid_type_error: "El monto es requerido" }).min(0, "El monto debe ser mayor o igual a 0"),
+  amount_paid: z.number().min(0, "El monto debe ser mayor o igual a 0"),
   payment_method: z.enum(["cash", "card", "transfer"]),
   notes: z.string().optional(),
 });

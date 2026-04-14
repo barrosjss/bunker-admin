@@ -15,7 +15,7 @@ import type { MemberWithMembership } from "@/lib/supabase/types/database";
 const editSchema = z.object({
   plan_id: z.string().min(1, "Selecciona un plan"),
   start_date: z.string().min(1, "Selecciona una fecha de inicio"),
-  amount_paid: z.number({ invalid_type_error: "El monto es requerido" }).min(0),
+  amount_paid: z.number().min(0),
   payment_method: z.enum(["cash", "card", "transfer"]),
   notes: z.string().optional(),
   status: z.enum(["active", "cancelled"]),

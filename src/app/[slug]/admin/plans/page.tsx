@@ -39,7 +39,7 @@ const planSchema = z.object({
   description: z.string().max(200).optional(),
   duration_type: z.enum(["1", "15", "30", "90", "180", "365", "custom"]),
   custom_days: z.number().int().min(1).max(3650).optional(),
-  price: z.number({ invalid_type_error: "El precio es requerido" }).min(0, "El precio debe ser positivo"),
+  price: z.number().min(0, "El precio debe ser positivo"),
   is_active: z.boolean(),
 });
 
