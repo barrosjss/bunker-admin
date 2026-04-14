@@ -39,7 +39,7 @@ const planSchema = z.object({
   description: z.string().max(200).optional(),
   duration_type: z.enum(["1", "15", "30", "90", "180", "365", "custom"]),
   custom_days: z.number().int().min(1).max(3650).optional(),
-  price: z.number().min(0, "El precio debe ser positivo"),
+  price: z.number({ invalid_type_error: "El precio es requerido" }).min(0, "El precio debe ser positivo"),
   is_active: z.boolean(),
 });
 
@@ -80,7 +80,7 @@ function PlanModal({ isOpen, onClose, plan, onSave }: PlanModalProps) {
       description: plan?.description ?? "",
       duration_type: defaultDurationType,
       custom_days: !isPreset && plan ? plan.duration_days : undefined,
-      price: plan?.price ?? 0,
+      price: plan?.price ?? undefined,
       is_active: plan?.is_active ?? true,
     },
   });

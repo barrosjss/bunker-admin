@@ -16,7 +16,7 @@ const paymentSchema = z.object({
   member_id: z.string().min(1, "Selecciona un miembro"),
   plan_id: z.string().min(1, "Selecciona un plan"),
   start_date: z.string().min(1, "Selecciona una fecha de inicio"),
-  amount_paid: z.number().min(0, "El monto debe ser mayor a 0"),
+  amount_paid: z.number({ invalid_type_error: "El monto es requerido" }).min(0, "El monto debe ser mayor o igual a 0"),
   payment_method: z.enum(["cash", "card", "transfer"]),
   notes: z.string().optional(),
 });
@@ -58,7 +58,7 @@ export function PaymentModal({
       member_id: preselectedMemberId || "",
       plan_id: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
-      amount_paid: 0,
+      amount_paid: undefined,
       payment_method: "cash",
       notes: "",
     },
@@ -171,9 +171,10 @@ export function PaymentModal({
           <Input
             type="number"
             label="Monto pagado *"
+            placeholder="0"
             step="0.01"
             error={errors.amount_paid?.message}
-            {...register("amount_paid")}
+            {...register("amount_paid", { valueAsNumber: true })}
           />
           <Select
             label="Método de pago *"

@@ -7,9 +7,9 @@ import {
   Button, Input, Spinner, EmptyState, Select,
   Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Badge,
 } from "@/components/ui";
-import { PaymentModal } from "@/components/members";
+import { PaymentModal, EditMembershipModal } from "@/components/members";
 import { Header } from "@/components/layout";
-import { Search, Users, Mail, Phone, MessageCircle } from "lucide-react";
+import { Search, Users, Mail, Phone, MessageCircle, Pencil } from "lucide-react";
 import { format, differenceInDays, startOfDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { MemberWithMembership } from "@/lib/supabase/types/database";
@@ -41,6 +41,7 @@ function MembersContent() {
   const [membershipFilter, setMembershipFilter] = useState(initialFilter);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>();
+  const [editingMember, setEditingMember] = useState<MemberWithMembership | null>(null);
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -93,6 +94,11 @@ function MembersContent() {
     e.stopPropagation();
     setSelectedMemberId(memberId);
     setIsPaymentModalOpen(true);
+  };
+
+  const openEdit = (e: React.MouseEvent, member: MemberWithMembership) => {
+    e.stopPropagation();
+    setEditingMember(member);
   };
 
   return (
@@ -256,6 +262,17 @@ function MembersContent() {
                               <MessageCircle className="h-4 w-4 text-green-500" />
                             </Button>
                           )}
+                          {hasMembership && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="px-2"
+                              title="Editar membresía"
+                              onClick={(e) => openEdit(e, member)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant={hasMembership ? "secondary" : "primary"}
                             size="sm"
@@ -279,6 +296,15 @@ function MembersContent() {
         onClose={() => { setIsPaymentModalOpen(false); setSelectedMemberId(undefined); }}
         preselectedMemberId={selectedMemberId}
       />
+
+      {editingMember && (
+        <EditMembershipModal
+          isOpen={!!editingMember}
+          onClose={() => setEditingMember(null)}
+          member={editingMember}
+          onSuccess={() => setEditingMember(null)}
+        />
+      )}
     </div>
   );
 }

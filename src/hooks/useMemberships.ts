@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   MembershipInsert,
+  MembershipUpdate,
   MembershipPlan,
   MembershipWithPlan,
 } from "@/lib/supabase/types/database";
@@ -54,12 +55,26 @@ export function useMemberships() {
     return data;
   };
 
+  const updateMembership = async (id: string, membershipData: MembershipUpdate) => {
+    const { data, error } = await supabase
+      .from("memberships")
+      .update(membershipData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    await fetchMemberships();
+    return data;
+  };
+
   return {
     memberships,
     loading,
     error,
     refetch: fetchMemberships,
     createMembership,
+    updateMembership,
   };
 }
 
