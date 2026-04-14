@@ -14,19 +14,35 @@ export interface MembershipPlan {
 export type CreateMembershipPlanInput = Omit<MembershipPlan, "id" | "created_at">;
 export type UpdateMembershipPlanInput = Partial<CreateMembershipPlanInput>;
 
-export function useMembershipPlans() {
+export function useMembershipPlans(slug: string) {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [establishmentId, setEstablishmentId] = useState<string | null>(null);
   const supabase = createClient();
+
+  const fetchEstablishmentId = async (): Promise<string | null> => {
+    const { data } = await supabase
+      .from("establishments")
+      .select("id")
+      .eq("slug", slug)
+      .single();
+    return data?.id ?? null;
+  };
 
   const fetchPlans = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      const estId = establishmentId ?? await fetchEstablishmentId();
+      if (!estId) throw new Error("Establecimiento no encontrado");
+      setEstablishmentId(estId);
+
       const { data, error } = await supabase
         .from("membership_plans")
         .select("*")
+        .eq("establishment_id", estId)
         .order("price", { ascending: true });
 
       if (error) throw error;
@@ -42,11 +58,13 @@ export function useMembershipPlans() {
 
   const createPlan = async (input: CreateMembershipPlanInput) => {
     try {
-      // TODO: agregar establishment_id cuando se refactorice a /[slug]/admin
+      const estId = establishmentId ?? await fetchEstablishmentId();
+      if (!estId) throw new Error("Establecimiento no encontrado");
+      setEstablishmentId(estId);
+
       const { data, error } = await supabase
         .from("membership_plans")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .insert([input as any])
+        .insert([{ ...input, establishment_id: estId }])
         .select()
         .single();
 
@@ -103,7 +121,7 @@ export function useMembershipPlans() {
   useEffect(() => {
     fetchPlans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [slug]);
 
   return {
     plans,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -242,7 +243,8 @@ function DeleteModal({ isOpen, plan, onConfirm, onClose }: DeleteModalProps) {
 
 // ─── Página principal ────────────────────────────────────────────────────────
 export default function AdminPlansPage() {
-  const { plans, loading, error, createPlan, updatePlan, deletePlan } = useMembershipPlans();
+  const { slug } = useParams<{ slug: string }>();
+  const { plans, loading, error, createPlan, updatePlan, deletePlan } = useMembershipPlans(slug);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MembershipPlan | null>(null);
