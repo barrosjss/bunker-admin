@@ -8,6 +8,7 @@ import { Ticket, Plus, Pencil, Trash2, Percent, DollarSign, Calendar, CheckCircl
 import {
   Button, Input, Modal, ModalFooter, EmptyState, Spinner, Badge,
 } from "@/components/ui";
+import { useParams } from "next/navigation";
 import { useCoupons } from "@/hooks/useCoupons";
 import { formatCurrency } from "@/lib/utils/formatting";
 import { format, parseISO } from "date-fns";
@@ -269,7 +270,8 @@ function DeleteModal({ isOpen, coupon, onConfirm, onClose }: DeleteModalProps) {
 
 // ─── Página principal ────────────────────────────────────────────────────────
 export default function AdminCouponsPage() {
-  const { coupons, loading, error, createCoupon, updateCoupon, deleteCoupon } = useCoupons();
+  const { slug } = useParams<{ slug: string }>();
+  const { coupons, loading, error, createCoupon, updateCoupon, deleteCoupon } = useCoupons(slug);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<DiscountCoupon | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DiscountCoupon | null>(null);
