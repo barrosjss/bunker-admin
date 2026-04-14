@@ -71,21 +71,34 @@ export default async function AdminDashboardPage({ params }: Props) {
     // Membresías vencidas (mora) — más antiguas primero
     supabase
       .from("memberships")
-      .select("id, end_date, members(id, name, phone)")
+      .select("id, end_date, member_id, members(id, name, phone)")
       .eq("status", "active")
       .lt("end_date", today)
       .order("end_date", { ascending: true })
-      .limit(8),
+      .limit(50),
     // Membresías por vencer en 7 días — las más próximas primero
     supabase
       .from("memberships")
-      .select("id, end_date, members(id, name, phone)")
+      .select("id, end_date, member_id, members(id, name, phone)")
       .eq("status", "active")
       .gte("end_date", today)
       .lte("end_date", in7Days)
       .order("end_date", { ascending: true })
-      .limit(8),
+      .limit(50),
   ]);
+
+  // Deduplicar por miembro (un mismo miembro puede tener varias membresías de prueba)
+  function dedup<T extends { member_id: string }>(list: T[]): T[] {
+    const seen = new Set<string>();
+    return list.filter((m) => {
+      if (seen.has(m.member_id)) return false;
+      seen.add(m.member_id);
+      return true;
+    }).slice(0, 8);
+  }
+
+  const uniqueOverdue = overdueList ? dedup(overdueList) : [];
+  const uniqueExpiring = expiringList ? dedup(expiringList) : [];
 
   const todayLabel = format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es });
   const base = `/${slug}/admin`;
@@ -143,7 +156,7 @@ export default async function AdminDashboardPage({ params }: Props) {
       </div>
 
       {/* Prioridad 1: Miembros en mora */}
-      {overdueList && overdueList.length > 0 && (
+      {uniqueOverdue.length > 0 && (
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -158,7 +171,7 @@ export default async function AdminDashboardPage({ params }: Props) {
             </Link>
           </div>
           <div className="space-y-2">
-            {overdueList.map((m) => {
+            {uniqueOverdue.map((m) => {
               const member = Array.isArray(m.members) ? m.members[0] : m.members;
               const endDate = new Date(m.end_date);
               const diffDays = Math.floor((endDate.getTime() - todayDate.getTime()) / 86400000);
@@ -199,7 +212,7 @@ export default async function AdminDashboardPage({ params }: Props) {
       )}
 
       {/* Prioridad 2: Por vencerse */}
-      {expiringList && expiringList.length > 0 && (
+      {uniqueExpiring.length > 0 && (
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -214,7 +227,7 @@ export default async function AdminDashboardPage({ params }: Props) {
             </Link>
           </div>
           <div className="space-y-2">
-            {expiringList.map((m) => {
+            {uniqueExpiring.map((m) => {
               const member = Array.isArray(m.members) ? m.members[0] : m.members;
               const endDate = new Date(m.end_date);
               const diffDays = Math.floor((endDate.getTime() - todayDate.getTime()) / 86400000);
