@@ -219,7 +219,7 @@ export default async function AdminDashboardPage({ params }: Props) {
               <AlertTriangle className="h-4 w-4 text-warning" />
               <h2 className="text-sm font-semibold text-text-primary">Por vencerse (7 días)</h2>
               <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-warning text-background text-xs font-bold">
-                {expiringSoon ?? expiringList.length}
+                {expiringSoon ?? uniqueExpiring.length}
               </span>
             </div>
             <Link href={`${base}/members?filter=expiring`} className="text-xs text-primary hover:underline">
