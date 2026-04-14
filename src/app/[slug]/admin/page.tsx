@@ -163,7 +163,7 @@ export default async function AdminDashboardPage({ params }: Props) {
               <XCircle className="h-4 w-4 text-danger" />
               <h2 className="text-sm font-semibold text-text-primary">En mora</h2>
               <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-danger text-white text-xs font-bold">
-                {expired ?? overdueList.length}
+                {expired ?? uniqueOverdue.length}
               </span>
             </div>
             <Link href={`${base}/members?filter=expired`} className="text-xs text-primary hover:underline">
