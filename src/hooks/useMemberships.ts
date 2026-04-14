@@ -44,6 +44,15 @@ export function useMemberships() {
   }, [fetchMemberships]);
 
   const createMembership = async (membershipData: MembershipInsert) => {
+    // Cancelar cualquier membresía activa previa del mismo miembro
+    const { error: cancelError } = await supabase
+      .from("memberships")
+      .update({ status: "cancelled" })
+      .eq("member_id", membershipData.member_id!)
+      .eq("status", "active");
+
+    if (cancelError) throw cancelError;
+
     const { data, error } = await supabase
       .from("memberships")
       .insert(membershipData)
