@@ -14,7 +14,7 @@ export interface MembershipPlan {
 export type CreateMembershipPlanInput = Omit<MembershipPlan, "id" | "created_at">;
 export type UpdateMembershipPlanInput = Partial<CreateMembershipPlanInput>;
 
-export function useMembershipPlans(slug: string) {
+export function useMembershipPlans(slug?: string) {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +22,7 @@ export function useMembershipPlans(slug: string) {
   const supabase = createClient();
 
   const fetchEstablishmentId = async (): Promise<string | null> => {
+    if (!slug) return null;
     const { data } = await supabase
       .from("establishments")
       .select("id")
@@ -35,16 +36,19 @@ export function useMembershipPlans(slug: string) {
       setLoading(true);
       setError(null);
 
-      const estId = establishmentId ?? await fetchEstablishmentId();
-      if (!estId) throw new Error("Establecimiento no encontrado");
-      setEstablishmentId(estId);
-
-      const { data, error } = await supabase
+      let query = supabase
         .from("membership_plans")
         .select("*")
-        .eq("establishment_id", estId)
         .order("price", { ascending: true });
 
+      if (slug) {
+        const estId = establishmentId ?? await fetchEstablishmentId();
+        if (!estId) throw new Error("Establecimiento no encontrado");
+        setEstablishmentId(estId);
+        query = query.eq("establishment_id", estId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setPlans(data || []);
     } catch (err) {
@@ -58,13 +62,19 @@ export function useMembershipPlans(slug: string) {
 
   const createPlan = async (input: CreateMembershipPlanInput) => {
     try {
-      const estId = establishmentId ?? await fetchEstablishmentId();
-      if (!estId) throw new Error("Establecimiento no encontrado");
-      setEstablishmentId(estId);
+      let insertData: Record<string, unknown> = { ...input };
+
+      if (slug) {
+        const estId = establishmentId ?? await fetchEstablishmentId();
+        if (!estId) throw new Error("Establecimiento no encontrado");
+        setEstablishmentId(estId);
+        insertData = { ...insertData, establishment_id: estId };
+      }
 
       const { data, error } = await supabase
         .from("membership_plans")
-        .insert([{ ...input, establishment_id: estId }])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert([insertData as any])
         .select()
         .single();
 
