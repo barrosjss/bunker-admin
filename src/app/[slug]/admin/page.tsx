@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Users, CreditCard, AlertTriangle, XCircle, Phone, MessageCircle } from "lucide-react";
 import { Card } from "@/components/ui";
-import { format, addDays } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
 interface Props {
@@ -108,7 +108,7 @@ export default async function AdminDashboardPage({ params }: Props) {
   const todayLabel = format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es });
   const base = `/${slug}/admin`;
 
-  const todayDate = new Date(today);
+  const todayDate = parseISO(today);
 
   return (
     <div className="p-4 sm:p-6">
@@ -178,7 +178,7 @@ export default async function AdminDashboardPage({ params }: Props) {
           <div className="space-y-2">
             {uniqueOverdue.map((m) => {
               const member = Array.isArray(m.members) ? m.members[0] : m.members;
-              const endDate = new Date(m.end_date);
+              const endDate = parseISO(m.end_date);
               const diffDays = Math.floor((endDate.getTime() - todayDate.getTime()) / 86400000);
               const phone = member?.phone?.replace(/\D/g, "");
               const phoneForWA = phone && phone.length === 10 ? "57" + phone : phone;
@@ -234,7 +234,7 @@ export default async function AdminDashboardPage({ params }: Props) {
           <div className="space-y-2">
             {uniqueExpiring.map((m) => {
               const member = Array.isArray(m.members) ? m.members[0] : m.members;
-              const endDate = new Date(m.end_date);
+              const endDate = parseISO(m.end_date);
               const diffDays = Math.floor((endDate.getTime() - todayDate.getTime()) / 86400000);
               const phone = member?.phone?.replace(/\D/g, "");
               const phoneForWA = phone && phone.length === 10 ? "57" + phone : phone;

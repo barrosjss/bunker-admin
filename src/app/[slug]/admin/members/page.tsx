@@ -10,7 +10,7 @@ import {
 import { PaymentModal, EditMembershipModal } from "@/components/members";
 import { Header } from "@/components/layout";
 import { Search, Users, Mail, Phone, MessageCircle, Pencil } from "lucide-react";
-import { format, differenceInDays, startOfDay, parseISO } from "date-fns";
+import { format, differenceInDays, startOfDay, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import type { MemberWithMembership } from "@/lib/supabase/types/database";
 
@@ -28,8 +28,10 @@ function getMembershipStatus(endDateString?: string | null) {
 
 function formatDate(dateString?: string | null) {
   if (!dateString) return "-";
-  try { return format(new Date(dateString), "dd MMM yyyy", { locale: es }); }
-  catch { return "-"; }
+  try {
+    const d = parseISO(dateString);
+    return isValid(d) ? format(d, "dd MMM yyyy", { locale: es }) : "-";
+  } catch { return "-"; }
 }
 
 function MembersContent() {

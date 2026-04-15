@@ -28,7 +28,10 @@ export function formatRelative(date: string | Date): string {
 
 export function calculateEndDate(startDate: string | Date, durationDays: number): Date {
   const d = typeof startDate === "string" ? parseISO(startDate) : startDate;
-  return addDays(d, durationDays);
+  // durationDays - 1 so that end_date is the last inclusive valid day.
+  // Example: 1-day pass starting Mar 16 → expires Mar 16 (same day).
+  //          30-day plan starting Mar 16 → expires Apr 14.
+  return addDays(d, Math.max(0, durationDays - 1));
 }
 
 export function daysUntilExpiration(endDate: string | Date): number {
