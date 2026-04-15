@@ -38,6 +38,7 @@ export interface PaymentModalProps {
   onClose: () => void;
   preselectedMemberId?: string;
   preselectedPlanId?: string;
+  onSuccess?: () => void;
 }
 
 export function PaymentModal({
@@ -45,6 +46,7 @@ export function PaymentModal({
   onClose,
   preselectedMemberId,
   preselectedPlanId,
+  onSuccess,
 }: PaymentModalProps) {
   const { createMembership } = useMemberships();
   const { plans } = useMembershipPlans();
@@ -208,6 +210,7 @@ export function PaymentModal({
       await createMembership(membershipData);
       reset();
       resetCouponState();
+      onSuccess?.();
       onClose();
     } catch (err) {
       console.error("Error creating membership:", err);

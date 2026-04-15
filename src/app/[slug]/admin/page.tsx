@@ -42,30 +42,30 @@ export default async function AdminDashboardPage({ params }: Props) {
   const today = format(new Date(), "yyyy-MM-dd");
   const in7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
-  // Stats + listas de alerta en paralelo
+  // Fetch raw data — los counts se calculan por miembro único (no por fila)
   const [
     { count: totalMembers },
-    { count: activeMembers },
-    { count: expiringSoon },
-    { count: expired },
+    { data: activeMembershipsRaw },
+    { data: expiringRaw },
+    { data: expiredRaw },
     { data: overdueList },
     { data: expiringList },
   ] = await Promise.all([
     supabase.from("members").select("*", { count: "exact", head: true }),
     supabase
       .from("memberships")
-      .select("*", { count: "exact", head: true })
+      .select("member_id")
       .eq("status", "active")
       .gte("end_date", today),
     supabase
       .from("memberships")
-      .select("*", { count: "exact", head: true })
+      .select("member_id")
       .eq("status", "active")
       .gte("end_date", today)
       .lte("end_date", in7Days),
     supabase
       .from("memberships")
-      .select("*", { count: "exact", head: true })
+      .select("member_id")
       .eq("status", "active")
       .lt("end_date", today),
     // Membresías vencidas (mora) — más antiguas primero
@@ -86,6 +86,11 @@ export default async function AdminDashboardPage({ params }: Props) {
       .order("end_date", { ascending: true })
       .limit(50),
   ]);
+
+  // Contar miembros únicos (no filas de membresía)
+  const activeMembers = new Set(activeMembershipsRaw?.map((m) => m.member_id) ?? []).size;
+  const expiringSoon = new Set(expiringRaw?.map((m) => m.member_id) ?? []).size;
+  const expired = new Set(expiredRaw?.map((m) => m.member_id) ?? []).size;
 
   // Deduplicar por miembro (un mismo miembro puede tener varias membresías de prueba)
   function dedup<T extends { member_id: string }>(list: T[]): T[] {

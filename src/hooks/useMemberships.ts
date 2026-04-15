@@ -77,6 +77,16 @@ export function useMemberships() {
     return data;
   };
 
+  const deleteMembership = async (id: string) => {
+    const { error } = await supabase
+      .from("memberships")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+    await fetchMemberships();
+  };
+
   const cancelMembership = async (id: string) => {
     const { error } = await supabase
       .from("memberships")
@@ -94,6 +104,7 @@ export function useMemberships() {
     refetch: fetchMemberships,
     createMembership,
     updateMembership,
+    deleteMembership,
     cancelMembership,
   };
 }
