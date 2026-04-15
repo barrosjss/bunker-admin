@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, startOfDay, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { Banknote, CreditCard, ArrowLeftRight, TrendingUp, Pencil, Trash2 } from "lucide-react";
+import { Banknote, CreditCard, ArrowLeftRight, TrendingUp, Pencil, Trash2, Search } from "lucide-react";
 import { Button, Input, EmptyState, Spinner, Select, Modal, ModalFooter } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatting";
@@ -226,6 +226,7 @@ export default function AdminFinancePage() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [memberSearch, setMemberSearch] = useState("");
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
   const [deletingMovement, setDeletingMovement] = useState<Movement | null>(null);
 
@@ -296,8 +297,15 @@ export default function AdminFinancePage() {
     await refetch();
   };
 
+  // ─── Filter by member name (client-side) ────────────────────────────────
+  const filteredMovements = memberSearch.trim()
+    ? movements.filter((m) =>
+        m.members?.name.toLowerCase().includes(memberSearch.toLowerCase())
+      )
+    : movements;
+
   // ─── Grouping by date ────────────────────────────────────────────────────
-  const grouped = movements.reduce<Record<string, Movement[]>>((acc, mov) => {
+  const grouped = filteredMovements.reduce<Record<string, Movement[]>>((acc, mov) => {
     const key = format(new Date(mov.created_at), "yyyy-MM-dd");
     if (!acc[key]) acc[key] = [];
     acc[key].push(mov);
@@ -305,7 +313,7 @@ export default function AdminFinancePage() {
   }, {});
 
   const groupKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
-  const totalIngresos = movements.reduce((sum, m) => sum + (m.amount_paid ?? 0), 0);
+  const totalIngresos = filteredMovements.reduce((sum, m) => sum + (m.amount_paid ?? 0), 0);
   const today = format(new Date(), "d 'de' MMMM yyyy", { locale: es });
 
   return (
@@ -330,7 +338,8 @@ export default function AdminFinancePage() {
           </span>
         </div>
         <p className="text-sm text-text-secondary mt-2">
-          {movements.length} movimiento{movements.length !== 1 ? "s" : ""}
+          {filteredMovements.length} movimiento{filteredMovements.length !== 1 ? "s" : ""}
+          {memberSearch.trim() && ` · filtrado por "${memberSearch.trim()}"`}
         </p>
       </div>
 
@@ -381,6 +390,17 @@ export default function AdminFinancePage() {
         </div>
       )}
 
+      {/* Member search */}
+      <div className="mb-4">
+        <Input
+          type="search"
+          placeholder="Buscar por miembro..."
+          value={memberSearch}
+          onChange={(e) => setMemberSearch(e.target.value)}
+          leftIcon={<Search className="h-4 w-4" />}
+        />
+      </div>
+
       {/* Transaction list */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -388,11 +408,11 @@ export default function AdminFinancePage() {
         </div>
       ) : error ? (
         <p className="text-center py-12 text-danger">{error}</p>
-      ) : movements.length === 0 ? (
+      ) : filteredMovements.length === 0 ? (
         <EmptyState
           icon={TrendingUp}
-          title="Sin movimientos en este período"
-          description="No hay pagos registrados en el rango de fechas seleccionado."
+          title={memberSearch.trim() ? "Sin resultados" : "Sin movimientos en este período"}
+          description={memberSearch.trim() ? `No hay pagos de "${memberSearch.trim()}" en este período.` : "No hay pagos registrados en el rango de fechas seleccionado."}
         />
       ) : (
         <div className="space-y-6">

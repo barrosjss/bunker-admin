@@ -56,7 +56,7 @@ export default async function AdminDashboardPage({ params }: Props) {
       .from("memberships")
       .select("member_id")
       .eq("status", "active")
-      .gte("end_date", today),
+      .gt("end_date", in7Days),
     supabase
       .from("memberships")
       .select("member_id")
