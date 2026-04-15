@@ -70,13 +70,12 @@ const FILTER_LABELS: Record<FilterTab, string> = {
 
 // ─── Finance Page ─────────────────────────────────────────────────────────────
 export default function AdminFinancePage() {
-  const { slug } = useParams<{ slug: string }>();
+  useParams<{ slug: string }>();
   const supabase = createClient();
 
   const [filter, setFilter] = useState<FilterTab>("month");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [customApplied, setCustomApplied] = useState({ from: "", to: "" });
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +115,6 @@ export default function AdminFinancePage() {
   }, [filter]);
 
   const handleCustomSearch = () => {
-    setCustomApplied({ from: customFrom, to: customTo });
     fetchMovements("custom", customFrom, customTo);
   };
 
