@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { format, startOfDay, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { Banknote, CreditCard, ArrowLeftRight, TrendingUp } from "lucide-react";
-import { Button, Input, EmptyState, Spinner } from "@/components/ui";
+import { Banknote, CreditCard, ArrowLeftRight, TrendingUp, Pencil, Trash2 } from "lucide-react";
+import { Button, Input, EmptyState, Spinner, Select, Modal, ModalFooter } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatting";
 
@@ -18,6 +21,7 @@ interface Movement {
   payment_method: PaymentMethod | null;
   status: string;
   start_date: string;
+  notes: string | null;
   created_at: string;
   members: { name: string } | null;
   membership_plans: { name: string } | null;
@@ -46,16 +50,9 @@ const METHOD_COLORS: Record<PaymentMethod, string> = {
 
 function getDateRange(filter: FilterTab, customFrom: string, customTo: string): { start: Date; end: Date } {
   const now = new Date();
-  if (filter === "today") {
-    return { start: startOfDay(now), end: now };
-  }
-  if (filter === "week") {
-    return { start: startOfDay(subDays(now, 6)), end: now };
-  }
-  if (filter === "month") {
-    return { start: startOfMonth(now), end: endOfMonth(now) };
-  }
-  // custom
+  if (filter === "today") return { start: startOfDay(now), end: now };
+  if (filter === "week") return { start: startOfDay(subDays(now, 6)), end: now };
+  if (filter === "month") return { start: startOfMonth(now), end: endOfMonth(now) };
   const start = customFrom ? new Date(customFrom + "T00:00:00") : startOfMonth(now);
   const end = customTo ? new Date(customTo + "T23:59:59") : endOfMonth(now);
   return { start, end };
@@ -68,6 +65,156 @@ const FILTER_LABELS: Record<FilterTab, string> = {
   custom: "Personalizado",
 };
 
+// ─── Edit schema ──────────────────────────────────────────────────────────────
+const editSchema = z.object({
+  amount_paid: z.number().min(0, "El monto debe ser mayor o igual a 0"),
+  payment_method: z.enum(["cash", "card", "transfer"]),
+  notes: z.string().optional(),
+});
+type EditFormData = z.infer<typeof editSchema>;
+
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
+interface EditMovementModalProps {
+  isOpen: boolean;
+  movement: Movement | null;
+  onClose: () => void;
+  onSave: (id: string, data: EditFormData) => Promise<void>;
+}
+
+function EditMovementModal({ isOpen, movement, onClose, onSave }: EditMovementModalProps) {
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<EditFormData>({
+    resolver: zodResolver(editSchema),
+    defaultValues: {
+      amount_paid: movement?.amount_paid ?? undefined,
+      payment_method: movement?.payment_method ?? "cash",
+      notes: movement?.notes ?? "",
+    },
+  });
+
+  // Sync defaults when movement changes
+  useEffect(() => {
+    if (movement) {
+      reset({
+        amount_paid: movement.amount_paid,
+        payment_method: movement.payment_method ?? "cash",
+        notes: movement.notes ?? "",
+      });
+    }
+  }, [movement, reset]);
+
+  const handleClose = () => {
+    setServerError(null);
+    onClose();
+  };
+
+  const onSubmit = async (data: EditFormData) => {
+    if (!movement) return;
+    setServerError(null);
+    try {
+      await onSave(movement.id, data);
+      handleClose();
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Error al guardar");
+    }
+  };
+
+  if (!movement) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} title="Editar movimiento" size="sm">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {serverError && (
+          <div className="p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
+            {serverError}
+          </div>
+        )}
+
+        <div>
+          <p className="text-sm text-text-secondary mb-1">Miembro</p>
+          <p className="text-sm font-medium text-text-primary">{movement.members?.name ?? "—"}</p>
+        </div>
+        <div>
+          <p className="text-sm text-text-secondary mb-1">Plan</p>
+          <p className="text-sm font-medium text-text-primary">{movement.membership_plans?.name ?? "—"}</p>
+        </div>
+
+        <Input
+          type="number"
+          label="Monto pagado *"
+          placeholder="0"
+          step="0.01"
+          error={errors.amount_paid?.message}
+          {...register("amount_paid", { valueAsNumber: true })}
+        />
+
+        <Select
+          label="Método de pago *"
+          options={[
+            { value: "cash", label: "Efectivo" },
+            { value: "card", label: "Tarjeta" },
+            { value: "transfer", label: "Transferencia" },
+          ]}
+          error={errors.payment_method?.message}
+          {...register("payment_method")}
+        />
+
+        <Input
+          label="Notas"
+          placeholder="Observaciones..."
+          {...register("notes")}
+        />
+
+        <ModalFooter>
+          <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
+          <Button type="submit" variant="primary" isLoading={isSubmitting}>Guardar</Button>
+        </ModalFooter>
+      </form>
+    </Modal>
+  );
+}
+
+// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
+interface DeleteMovementModalProps {
+  isOpen: boolean;
+  movement: Movement | null;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}
+
+function DeleteMovementModal({ isOpen, movement, onClose, onConfirm }: DeleteMovementModalProps) {
+  const [loading, setLoading] = useState(false);
+  if (!movement) return null;
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Eliminar movimiento" size="sm">
+      <p className="text-text-secondary text-sm mb-4">
+        ¿Eliminar el pago de <strong className="text-text-primary">{movement.members?.name ?? "este miembro"}</strong> por{" "}
+        <strong className="text-text-primary">{formatCurrency(movement.amount_paid)}</strong>? Esta acción no se puede deshacer.
+      </p>
+      <ModalFooter>
+        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button
+          variant="danger"
+          isLoading={loading}
+          onClick={async () => {
+            setLoading(true);
+            await onConfirm();
+            setLoading(false);
+          }}
+        >
+          Eliminar
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+}
+
 // ─── Finance Page ─────────────────────────────────────────────────────────────
 export default function AdminFinancePage() {
   useParams<{ slug: string }>();
@@ -79,23 +226,28 @@ export default function AdminFinancePage() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
+  const [deletingMovement, setDeletingMovement] = useState<Movement | null>(null);
+
+  // Keep last fetched params so we can refetch after mutations
+  const [lastFetchParams, setLastFetchParams] = useState<{ filter: FilterTab; cf: string; ct: string }>({
+    filter: "month", cf: "", ct: "",
+  });
 
   const fetchMovements = async (activeFilter: FilterTab, cf: string, ct: string) => {
     setLoading(true);
     setError(null);
+    setLastFetchParams({ filter: activeFilter, cf, ct });
     try {
       const { start, end } = getDateRange(activeFilter, cf, ct);
-      const startISO = start.toISOString();
-      const endISO = end.toISOString();
-
       const { data, error: dbError } = await supabase
         .from("memberships")
-        .select(`id, amount_paid, payment_method, status, start_date, created_at,
+        .select(`id, amount_paid, payment_method, status, start_date, notes, created_at,
           members(name),
           membership_plans(name)
         `)
-        .gte("created_at", startISO)
-        .lte("created_at", endISO)
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
 
       if (dbError) throw dbError;
@@ -106,6 +258,8 @@ export default function AdminFinancePage() {
       setLoading(false);
     }
   };
+
+  const refetch = () => fetchMovements(lastFetchParams.filter, lastFetchParams.cf, lastFetchParams.ct);
 
   useEffect(() => {
     if (filter !== "custom") {
@@ -118,6 +272,30 @@ export default function AdminFinancePage() {
     fetchMovements("custom", customFrom, customTo);
   };
 
+  const handleEditSave = async (id: string, data: EditFormData) => {
+    const { error } = await supabase
+      .from("memberships")
+      .update({
+        amount_paid: data.amount_paid,
+        payment_method: data.payment_method,
+        notes: data.notes || null,
+      })
+      .eq("id", id);
+    if (error) throw error;
+    await refetch();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingMovement) return;
+    const { error } = await supabase
+      .from("memberships")
+      .delete()
+      .eq("id", deletingMovement.id);
+    if (error) throw error;
+    setDeletingMovement(null);
+    await refetch();
+  };
+
   // ─── Grouping by date ────────────────────────────────────────────────────
   const grouped = movements.reduce<Record<string, Movement[]>>((acc, mov) => {
     const key = format(new Date(mov.created_at), "yyyy-MM-dd");
@@ -127,9 +305,7 @@ export default function AdminFinancePage() {
   }, {});
 
   const groupKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
-
   const totalIngresos = movements.reduce((sum, m) => sum + (m.amount_paid ?? 0), 0);
-
   const today = format(new Date(), "d 'de' MMMM yyyy", { locale: es });
 
   return (
@@ -280,6 +456,26 @@ export default function AdminFinancePage() {
                             <span className="text-xs text-text-secondary">{time}</span>
                           </div>
                         </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 ml-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setEditingMovement(mov)}
+                            className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                            title="Editar movimiento"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingMovement(mov)}
+                            className="p-1.5 rounded-lg text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors"
+                            title="Eliminar movimiento"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -289,6 +485,20 @@ export default function AdminFinancePage() {
           })}
         </div>
       )}
+
+      <EditMovementModal
+        isOpen={!!editingMovement}
+        movement={editingMovement}
+        onClose={() => setEditingMovement(null)}
+        onSave={handleEditSave}
+      />
+
+      <DeleteMovementModal
+        isOpen={!!deletingMovement}
+        movement={deletingMovement}
+        onClose={() => setDeletingMovement(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

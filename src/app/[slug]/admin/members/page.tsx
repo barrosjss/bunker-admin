@@ -298,6 +298,7 @@ function MembersContent() {
         onClose={() => { setIsPaymentModalOpen(false); setSelectedMemberId(undefined); setSelectedPlanId(undefined); }}
         preselectedMemberId={selectedMemberId}
         preselectedPlanId={selectedPlanId}
+        onSuccess={() => { setIsPaymentModalOpen(false); setSelectedMemberId(undefined); setSelectedPlanId(undefined); refetch(); }}
       />
 
       {editingMember && (
