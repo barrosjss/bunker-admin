@@ -12,6 +12,7 @@ import {
 import { useMembershipPlans } from "@/hooks/useMembershipPlans";
 import { formatCurrency } from "@/lib/utils/formatting";
 import type { MembershipPlan } from "@/hooks/useMembershipPlans";
+import { CouponsSection } from "./_components/CouponsSection";
 
 // ─── Duraciones predefinidas ────────────────────────────────────────────────
 const DURATION_PRESETS = [
@@ -262,6 +263,7 @@ function DeleteModal({ isOpen, plan, onConfirm, onClose }: DeleteModalProps) {
 export default function AdminPlansPage() {
   const { slug } = useParams<{ slug: string }>();
   const { plans, loading, error, createPlan, updatePlan, deletePlan } = useMembershipPlans(slug);
+  const [tab, setTab] = useState<"plans" | "coupons">("plans");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MembershipPlan | null>(null);
@@ -310,117 +312,153 @@ export default function AdminPlansPage() {
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Planes</h1>
-          <p className="text-sm text-text-secondary mt-0.5">Gestiona los planes de membresía</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Planes y Cupones</h1>
+          <p className="text-sm text-text-secondary mt-0.5">Gestiona planes de membresía y descuentos</p>
         </div>
-        <Button variant="primary" size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
-          <span className="hidden sm:inline">Nuevo plan</span>
-          <span className="sm:hidden">Nuevo</span>
-        </Button>
+        {tab === "plans" && (
+          <Button variant="primary" size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
+            <span className="hidden sm:inline">Nuevo plan</span>
+            <span className="sm:hidden">Nuevo</span>
+          </Button>
+        )}
       </div>
 
-      {actionError && (
-        <div className="mb-4 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
-          {actionError}
+      {/* Tab switcher */}
+      <div className="flex mb-6">
+        <div className="flex p-1 bg-surface-elevated border border-border rounded-lg gap-1">
+          <button
+            type="button"
+            onClick={() => setTab("plans")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              tab === "plans"
+                ? "bg-primary text-white shadow-sm"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            Planes
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("coupons")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              tab === "coupons"
+                ? "bg-primary text-white shadow-sm"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            Cupones
+          </button>
         </div>
-      )}
+      </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" />
-        </div>
-      ) : error ? (
-        <p className="text-center py-12 text-danger">{error}</p>
-      ) : plans.length === 0 ? (
-        <EmptyState
-          icon={Tag}
-          title="Sin planes"
-          description="Crea el primer plan de membresía para tu gimnasio."
-          action={
-            <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
-              Crear plan
-            </Button>
-          }
-        />
+      {tab === "coupons" ? (
+        <CouponsSection slug={slug} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`bg-surface rounded-xl border p-4 flex flex-col gap-3 ${
-                plan.is_active ? "border-border" : "border-border opacity-60"
-              }`}
-            >
-              {/* Top row */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-text-primary truncate">{plan.name}</h3>
-                  {plan.description && (
-                    <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{plan.description}</p>
-                  )}
-                </div>
-                <Badge variant={plan.is_active ? "success" : "default"}>
-                  {plan.is_active ? (
-                    <><CheckCircle className="h-3 w-3 mr-1 inline" />Activo</>
-                  ) : (
-                    <><XCircle className="h-3 w-3 mr-1 inline" />Inactivo</>
-                  )}
-                </Badge>
-              </div>
-
-              {/* Duración y precio */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5 text-text-secondary">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-sm">{durationLabel(plan.duration_days)}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-text-primary">
-                  <DollarSign className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold">{formatCurrency(plan.price)}</span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 pt-1 border-t border-border">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1"
-                  leftIcon={<Pencil className="h-4 w-4" />}
-                  onClick={() => openEdit(plan)}
-                >
-                  Editar
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 text-danger hover:bg-danger/10 hover:text-danger"
-                  leftIcon={<Trash2 className="h-4 w-4" />}
-                  onClick={() => setDeleteTarget(plan)}
-                >
-                  Eliminar
-                </Button>
-              </div>
+        <>
+          {actionError && (
+            <div className="mb-4 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
+              {actionError}
             </div>
-          ))}
-        </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Spinner size="lg" />
+            </div>
+          ) : error ? (
+            <p className="text-center py-12 text-danger">{error}</p>
+          ) : plans.length === 0 ? (
+            <EmptyState
+              icon={Tag}
+              title="Sin planes"
+              description="Crea el primer plan de membresía para tu gimnasio."
+              action={
+                <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
+                  Crear plan
+                </Button>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`bg-surface rounded-xl border p-4 flex flex-col gap-3 ${
+                    plan.is_active ? "border-border" : "border-border opacity-60"
+                  }`}
+                >
+                  {/* Top row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-text-primary truncate">{plan.name}</h3>
+                      {plan.description && (
+                        <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{plan.description}</p>
+                      )}
+                    </div>
+                    <Badge variant={plan.is_active ? "success" : "default"}>
+                      {plan.is_active ? (
+                        <><CheckCircle className="h-3 w-3 mr-1 inline" />Activo</>
+                      ) : (
+                        <><XCircle className="h-3 w-3 mr-1 inline" />Inactivo</>
+                      )}
+                    </Badge>
+                  </div>
+
+                  {/* Duración y precio */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-text-secondary">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-sm">{durationLabel(plan.duration_days)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-text-primary">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold">{formatCurrency(plan.price)}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1"
+                      leftIcon={<Pencil className="h-4 w-4" />}
+                      onClick={() => openEdit(plan)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1 text-danger hover:bg-danger/10 hover:text-danger"
+                      leftIcon={<Trash2 className="h-4 w-4" />}
+                      onClick={() => setDeleteTarget(plan)}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <PlanModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            plan={editingPlan}
+            onSave={handleSave}
+          />
+
+          <DeleteModal
+            isOpen={!!deleteTarget}
+            plan={deleteTarget}
+            onConfirm={handleDelete}
+            onClose={() => setDeleteTarget(null)}
+          />
+        </>
       )}
-
-      <PlanModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        plan={editingPlan}
-        onSave={handleSave}
-      />
-
-      <DeleteModal
-        isOpen={!!deleteTarget}
-        plan={deleteTarget}
-        onConfirm={handleDelete}
-        onClose={() => setDeleteTarget(null)}
-      />
     </div>
   );
 }

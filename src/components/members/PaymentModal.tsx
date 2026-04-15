@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
 import { Modal, ModalFooter, Select, Input, Button } from "@/components/ui";
 import { useMemberships, useMembershipPlans } from "@/hooks/useMemberships";
 import { useMembers } from "@/hooks/useMembers";
 import { calculateEndDate, formatDate } from "@/lib/utils/dates";
 import { formatCurrency } from "@/lib/utils/formatting";
 import { MembershipInsert } from "@/lib/supabase/types/database";
+import { createClient } from "@/lib/supabase/client";
+import type { DiscountCoupon } from "@/lib/supabase/types/database";
 
 const paymentSchema = z.object({
   member_id: z.string().min(1, "Selecciona un miembro"),
@@ -46,6 +49,14 @@ export function PaymentModal({
   const { createMembership } = useMemberships();
   const { plans } = useMembershipPlans();
   const { members } = useMembers();
+  const supabase = createClient();
+
+  // Coupon state
+  const [couponSectionOpen, setCouponSectionOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<DiscountCoupon | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const {
     register,
@@ -90,8 +101,89 @@ export function PaymentModal({
   const handlePlanChange = (planId: string) => {
     const plan = plans.find((p) => p.id === planId);
     if (plan) {
-      setValue("amount_paid", plan.price);
+      // If coupon applied, recalculate with new plan price
+      if (appliedCoupon) {
+        const discounted = calcDiscountedPrice(plan.price, appliedCoupon);
+        setValue("amount_paid", discounted);
+      } else {
+        setValue("amount_paid", plan.price);
+      }
     }
+  };
+
+  const calcDiscountedPrice = (basePrice: number, coupon: DiscountCoupon): number => {
+    if (coupon.discount_type === "percentage") {
+      return Math.round(basePrice * (1 - coupon.discount_value / 100) * 100) / 100;
+    } else {
+      return Math.max(0, basePrice - coupon.discount_value);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponError(null);
+    setCouponLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("discount_coupons")
+        .select("*")
+        .eq("code", couponCode.trim().toUpperCase())
+        .eq("is_active", true)
+        .single();
+
+      if (error || !data) {
+        setCouponError("Cupón no encontrado o inactivo.");
+        setCouponLoading(false);
+        return;
+      }
+
+      // Validate expiration
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+        setCouponError("Este cupón ha vencido.");
+        setCouponLoading(false);
+        return;
+      }
+
+      // Validate max uses
+      if (data.max_uses !== null && data.used_count >= data.max_uses) {
+        setCouponError("Este cupón ha alcanzado su límite de usos.");
+        setCouponLoading(false);
+        return;
+      }
+
+      // Apply coupon
+      setAppliedCoupon(data);
+      setCouponError(null);
+
+      const currentPlan = plans.find((p) => p.id === selectedPlanId);
+      if (currentPlan) {
+        const discounted = calcDiscountedPrice(currentPlan.price, data);
+        setValue("amount_paid", discounted);
+      }
+    } catch {
+      setCouponError("Error al verificar el cupón.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError(null);
+    const currentPlan = plans.find((p) => p.id === selectedPlanId);
+    if (currentPlan) {
+      setValue("amount_paid", currentPlan.price);
+    }
+  };
+
+  const resetCouponState = () => {
+    setCouponSectionOpen(false);
+    setCouponCode("");
+    setAppliedCoupon(null);
+    setCouponError(null);
+    setCouponLoading(false);
   };
 
   const handleCreateMembership = async (data: PaymentFormData) => {
@@ -115,17 +207,25 @@ export function PaymentModal({
 
       await createMembership(membershipData);
       reset();
+      resetCouponState();
       onClose();
     } catch (err) {
       console.error("Error creating membership:", err);
     }
   };
 
+  const discountLabel = appliedCoupon
+    ? appliedCoupon.discount_type === "percentage"
+      ? `${appliedCoupon.discount_value}% de descuento`
+      : `${formatCurrency(appliedCoupon.discount_value)} de descuento`
+    : "";
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={() => {
         reset();
+        resetCouponState();
         onClose();
       }}
       title="Registrar pago de membresía"
@@ -155,6 +255,75 @@ export function PaymentModal({
             onChange: (e) => handlePlanChange(e.target.value),
           })}
         />
+
+        {/* ─── Coupon Section ──────────────────────────────────────────── */}
+        <div className="rounded-lg border border-border bg-surface-elevated overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setCouponSectionOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <span>Aplicar cupón</span>
+            {couponSectionOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
+
+          {couponSectionOpen && (
+            <div className="px-4 pb-4 space-y-3 border-t border-border">
+              {appliedCoupon ? (
+                <div className="mt-3 flex items-center justify-between gap-2 p-3 rounded-lg bg-success/10 border border-success/30">
+                  <div>
+                    <p className="text-sm font-semibold text-success">
+                      Cupón aplicado: <span className="font-mono">{appliedCoupon.code}</span>
+                    </p>
+                    <p className="text-xs text-success/80">{appliedCoupon.name} — {discountLabel}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="shrink-0 text-success hover:text-danger transition-colors"
+                    title="Quitar cupón"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleApplyCoupon())}
+                      placeholder="CODIGO2024"
+                      className="flex-1 px-4 py-3 bg-surface border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary uppercase font-mono text-sm tracking-widest"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                    >
+                      {couponLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Aplicar"
+                      )}
+                    </Button>
+                  </div>
+                  {couponError && (
+                    <p className="mt-2 text-sm text-danger">{couponError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* ─── End Coupon Section ──────────────────────────────────────── */}
 
         <div className="grid grid-cols-2 gap-4">
           <Input
@@ -206,6 +375,7 @@ export function PaymentModal({
             variant="secondary"
             onClick={() => {
               reset();
+              resetCouponState();
               onClose();
             }}
           >

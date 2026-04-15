@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   Users,
   Tag,
-  Ticket,
+  TrendingUp,
 } from "lucide-react";
 
 interface Props {
@@ -22,7 +22,7 @@ export function AdminSlugMobileNav({ slug }: Props) {
     { name: "Inicio", href: base, icon: LayoutDashboard, exact: true },
     { name: "Miembros", href: `${base}/members`, icon: Users },
     { name: "Planes", href: `${base}/plans`, icon: Tag },
-    { name: "Cupones", href: `${base}/coupons`, icon: Ticket },
+    { name: "Finanzas", href: `${base}/finance`, icon: TrendingUp },
   ];
 
   const isActive = (href: string, exact = false) => {
