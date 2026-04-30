@@ -10,7 +10,7 @@ import {
 } from "@/components/ui";
 import { PaymentModal, EditMembershipModal } from "@/components/members";
 import { Header } from "@/components/layout";
-import { Search, Users, Mail, Phone, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { Search, Users, Mail, Phone, MessageCircle, Pencil } from "lucide-react";
 import { format, differenceInDays, startOfDay, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import type { MemberWithMembership, MembershipWithPlan } from "@/lib/supabase/types/database";
@@ -124,10 +124,7 @@ function MembersContent() {
     setEditingMember(member);
   };
 
-  const openDelete = (e: React.MouseEvent, member: MemberWithMembership) => {
-    e.stopPropagation();
-    setDeletingMember(member);
-  };
+
 
   const handleDelete = async () => {
     if (!deletingMember) return;

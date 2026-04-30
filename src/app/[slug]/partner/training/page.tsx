@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
+
 import { useParams } from "next/navigation";
 import { usePartnerMemberId } from "@/hooks/usePartner";
-import { useMemberSessions, useTrainingSessions } from "@/hooks/useTraining";
+import { useMemberSessions } from "@/hooks/useTraining";
 import { useExercises } from "@/hooks/useExercises";
 import { SessionForm, SessionHistory, ExerciseSelector } from "@/components/training";
 import { Header } from "@/components/layout";
