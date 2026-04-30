@@ -36,7 +36,7 @@ export function useMembers() {
     // Add current membership info
     const membersWithCurrentMembership = data.map((member) => {
       const activeMembership = member.memberships?.find(
-        (m: { status: string }) => m.status === "active"
+        (m: { status: string }) => m.status === "active" || m.status === "frozen"
       );
       return {
         ...member,
@@ -125,7 +125,7 @@ export function useMember(id: string) {
     }
 
     const activeMembership = data.memberships?.find(
-      (m: { status: string }) => m.status === "active"
+      (m: { status: string }) => m.status === "active" || m.status === "frozen"
     );
 
     setMember({

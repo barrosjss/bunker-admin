@@ -20,7 +20,8 @@ src/
 │   │   ├── register/           # Formulario público de registro (sin auth)
 │   │   ├── owner/              # Dashboard dueño del establecimiento
 │   │   ├── admin/              # Dashboard administrador
-│   │   └── trainer/            # Dashboard entrenador
+│   │   ├── trainer/            # Redirección a /trainer (TODO: migrar)
+│   │   └── partner/            # Dashboard partner (acceso a sus sesiones)
 │   └── page.tsx
 │
 ├── components/
@@ -68,15 +69,19 @@ Las URLs usan el `slug` del establecimiento:
 |-----|--------|-------------------|
 | `owner` | `/[slug]/owner` | Configura el gym, gestiona el equipo |
 | `admin` | `/[slug]/admin` | Miembros, planes, pagos, asignación de trainers |
-| `trainer` | `/[slug]/trainer` | Solo sus miembros asignados y sesiones |
+| `trainer` | `/[slug]/trainer` → `/trainer` | Solo sus miembros asignados y sesiones |
+| `partner` | `/[slug]/partner` | Solo sus propias sesiones de entrenamiento |
 
-Los tres dashboards son completamente independientes — sin panel selector, sin cambio de rol sin cerrar sesión. El middleware de Next.js redirige según el rol del usuario autenticado.
+Los dashboards son completamente independientes — sin panel selector, sin cambio de rol sin cerrar sesión. El middleware de Next.js redirige según el rol del usuario autenticado.
+
+**Partner**: persona que recibe entrenamiento personal y tiene cuenta en el sistema. Tiene `role = 'partner'` en `establishment_users` y un `member_id` que lo vincula a su registro en `members`. El RLS garantiza que solo acceda a sus propias `training_sessions`.
 
 ## Schema (tablas principales)
 
 ```
 establishments          → gimnasios (slug único para URLs)
-establishment_users     → staff con rol por gym (owner/admin/trainer)
+establishment_users     → staff con rol por gym (owner/admin/trainer/partner)
+                          partner tiene member_id → FK a members
 members                 → miembros, con establishment_id
 membership_plans        → planes del gym
 memberships             → pagos y membresías activas

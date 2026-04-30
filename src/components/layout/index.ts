@@ -8,3 +8,5 @@ export { TrainerMobileNav } from "./TrainerMobileNav";
 export { PanelSwitcher } from "./PanelSwitcher";
 export { AdminSlugMobileNav } from "./AdminSlugMobileNav";
 export { AdminSlugSidebar } from "./AdminSlugSidebar";
+export { PartnerSidebar } from "./PartnerSidebar";
+export { PartnerMobileNav } from "./PartnerMobileNav";

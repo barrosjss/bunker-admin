@@ -3,26 +3,40 @@
 import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMembers } from "@/hooks/useMembers";
+import { useMemberships } from "@/hooks/useMemberships";
 import {
   Button, Input, Spinner, EmptyState, Select,
-  Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Badge,
+  Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Badge, Modal, ModalFooter
 } from "@/components/ui";
 import { PaymentModal, EditMembershipModal } from "@/components/members";
 import { Header } from "@/components/layout";
-import { Search, Users, Mail, Phone, MessageCircle, Pencil } from "lucide-react";
+import { Search, Users, Mail, Phone, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { format, differenceInDays, startOfDay, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import type { MemberWithMembership } from "@/lib/supabase/types/database";
+import type { MemberWithMembership, MembershipWithPlan } from "@/lib/supabase/types/database";
 
-type MembershipStatusKey = "none" | "active" | "expiring" | "expired";
+type MembershipStatusKey = "none" | "active" | "expiring" | "expired" | "frozen";
 
-function getMembershipStatus(endDateString?: string | null) {
-  if (!endDateString) return { status: "none" as MembershipStatusKey, label: "Sin membresía", variant: "default" as const, diffDays: null };
+function getMembershipStatus(membership?: MembershipWithPlan | null) {
+  if (!membership?.end_date) return { status: "none" as MembershipStatusKey, label: "Sin membresía", variant: "default" as const, diffDays: null };
+  if (membership.status === "frozen") return { status: "frozen" as MembershipStatusKey, label: "Congelada", variant: "default" as const, diffDays: null };
+  
   const today = startOfDay(new Date());
-  const endDate = startOfDay(parseISO(endDateString));
+  const endDate = startOfDay(parseISO(membership.end_date));
   const diffDays = differenceInDays(endDate, today);
-  if (diffDays < 0) return { status: "expired" as MembershipStatusKey, label: "Vencida", variant: "danger" as const, diffDays };
-  if (diffDays <= 7) return { status: "expiring" as MembershipStatusKey, label: `Vence en ${diffDays}d`, variant: "warning" as const, diffDays };
+  
+  const isDayPass = membership.membership_plans?.duration_days === 1;
+
+  if (diffDays < 0) {
+    if (isDayPass) return { status: "none" as MembershipStatusKey, label: "Pasadía consumido", variant: "default" as const, diffDays };
+    return { status: "expired" as MembershipStatusKey, label: "Vencida", variant: "danger" as const, diffDays };
+  }
+  
+  if (diffDays <= 7) {
+    if (isDayPass) return { status: "active" as MembershipStatusKey, label: "Pasadía Activo", variant: "success" as const, diffDays };
+    return { status: "expiring" as MembershipStatusKey, label: `Vence en ${diffDays}d`, variant: "warning" as const, diffDays };
+  }
+  
   return { status: "active" as MembershipStatusKey, label: "Activa", variant: "success" as const, diffDays };
 }
 
@@ -38,13 +52,18 @@ function MembersContent() {
   const searchParams = useSearchParams();
   const initialFilter = searchParams.get("filter") || "all";
 
-  const { members, loading, error, refetch } = useMembers();
+  const { members, loading, error, refetch, deleteMember } = useMembers();
+  const { unfreezeMembership } = useMemberships();
   const [search, setSearch] = useState("");
   const [membershipFilter, setMembershipFilter] = useState(initialFilter);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>();
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>();
   const [editingMember, setEditingMember] = useState<MemberWithMembership | null>(null);
+  const [deletingMember, setDeletingMember] = useState<MemberWithMembership | null>(null);
+  const [unfreezingMember, setUnfreezingMember] = useState<MemberWithMembership | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUnfreezing, setIsUnfreezing] = useState(false);
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -53,7 +72,7 @@ function MembersContent() {
         m.email?.toLowerCase().includes(search.toLowerCase()) ||
         m.phone?.includes(search);
 
-      const ms = getMembershipStatus(m.current_membership?.end_date);
+      const ms = getMembershipStatus(m.current_membership);
 
       const matchesMembership =
         membershipFilter === "all" ? true :
@@ -69,10 +88,10 @@ function MembersContent() {
 
   const stats = useMemo(() => ({
     total: members.length,
-    active: members.filter((m) => getMembershipStatus(m.current_membership?.end_date).status === "active").length,
-    expiring: members.filter((m) => getMembershipStatus(m.current_membership?.end_date).status === "expiring").length,
-    expired: members.filter((m) => getMembershipStatus(m.current_membership?.end_date).status === "expired").length,
-    none: members.filter((m) => !m.current_membership).length,
+    active: members.filter((m) => getMembershipStatus(m.current_membership).status === "active").length,
+    expiring: members.filter((m) => getMembershipStatus(m.current_membership).status === "expiring").length,
+    expired: members.filter((m) => getMembershipStatus(m.current_membership).status === "expired").length,
+    none: members.filter((m) => getMembershipStatus(m.current_membership).status === "none").length,
   }), [members]);
 
   const handleWhatsApp = (
@@ -103,6 +122,40 @@ function MembersContent() {
   const openEdit = (e: React.MouseEvent, member: MemberWithMembership) => {
     e.stopPropagation();
     setEditingMember(member);
+  };
+
+  const openDelete = (e: React.MouseEvent, member: MemberWithMembership) => {
+    e.stopPropagation();
+    setDeletingMember(member);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingMember) return;
+    setIsDeleting(true);
+    try {
+      await deleteMember(deletingMember.id);
+      setDeletingMember(null);
+    } catch (err) {
+      console.error("Error al eliminar miembro", err);
+      alert("No se pudo eliminar el miembro. Puede que tenga pagos asociados.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleUnfreeze = async () => {
+    if (!unfreezingMember || !unfreezingMember.current_membership) return;
+    setIsUnfreezing(true);
+    try {
+      await unfreezeMembership(unfreezingMember.current_membership.id);
+      setUnfreezingMember(null);
+      refetch();
+    } catch (err) {
+      console.error("Error al descongelar membresía", err);
+      alert(err instanceof Error ? err.message : "Error al descongelar");
+    } finally {
+      setIsUnfreezing(false);
+    }
   };
 
   return (
@@ -183,7 +236,7 @@ function MembersContent() {
               </TableHeader>
               <TableBody>
                 {filtered.map((member) => {
-                  const ms = getMembershipStatus(member.current_membership?.end_date);
+                  const ms = getMembershipStatus(member.current_membership);
                   const hasMembership = !!member.current_membership;
 
                   return (
@@ -266,23 +319,28 @@ function MembersContent() {
                               <MessageCircle className="h-4 w-4 text-green-500" />
                             </Button>
                           )}
-                          {hasMembership && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="px-2"
-                              title="Editar membresía"
-                              onClick={(e) => openEdit(e, member)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
                           <Button
-                            variant={hasMembership ? "secondary" : "primary"}
+                            variant="ghost"
                             size="sm"
-                            onClick={(e) => openPayment(e, member)}
+                            className="px-2"
+                            title="Gestionar miembro"
+                            onClick={(e) => openEdit(e, member)}
                           >
-                            {hasMembership ? "Renovar" : "Activar"}
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant={ms.status === "frozen" ? "primary" : hasMembership ? "secondary" : "primary"}
+                            size="sm"
+                            onClick={(e) => {
+                              if (ms.status === "frozen") {
+                                e.stopPropagation();
+                                setUnfreezingMember(member);
+                              } else {
+                                openPayment(e, member);
+                              }
+                            }}
+                          >
+                            {ms.status === "frozen" ? "Descongelar" : hasMembership ? "Renovar" : "Activar"}
                           </Button>
                         </div>
                       </TableCell>
@@ -309,7 +367,41 @@ function MembersContent() {
           onClose={() => setEditingMember(null)}
           member={editingMember}
           onSuccess={() => { setEditingMember(null); refetch(); }}
+          onRequestDelete={() => setDeletingMember(editingMember)}
         />
+      )}
+
+      {deletingMember && (
+        <Modal isOpen={!!deletingMember} onClose={() => setDeletingMember(null)} title="Eliminar miembro">
+          <p className="text-text-secondary text-sm mb-4">
+            ¿Estás seguro de eliminar a <span className="font-semibold text-text-primary">{deletingMember.name}</span>? 
+            Esta acción no se puede deshacer y eliminará también su historial de pagos y rutinas.
+          </p>
+          <ModalFooter className="flex w-full gap-3 mt-4">
+            <Button type="button" variant="secondary" className="flex-1 justify-center" onClick={() => setDeletingMember(null)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="danger" className="flex-1 justify-center" isLoading={isDeleting} onClick={handleDelete}>
+              Eliminar
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
+
+      {unfreezingMember && (
+        <Modal isOpen={!!unfreezingMember} onClose={() => setUnfreezingMember(null)} title="Descongelar membresía">
+          <p className="text-text-secondary text-sm mb-4">
+            Al descongelar la membresía de <span className="font-semibold text-text-primary">{unfreezingMember.name}</span>, se calcularán los días que estuvo congelada y se sumarán automáticamente a su fecha de vencimiento actual. ¿Deseas continuar?
+          </p>
+          <ModalFooter className="flex w-full gap-3 mt-4">
+            <Button type="button" variant="secondary" className="flex-1 justify-center" onClick={() => setUnfreezingMember(null)} disabled={isUnfreezing}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="primary" className="flex-1 justify-center" isLoading={isUnfreezing} onClick={handleUnfreeze}>
+              Descongelar
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </div>
   );

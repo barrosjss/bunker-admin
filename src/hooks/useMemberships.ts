@@ -8,7 +8,7 @@ import {
   MembershipPlan,
   MembershipWithPlan,
 } from "@/lib/supabase/types/database";
-import { addDays, format } from "date-fns";
+import { addDays, format, differenceInDays } from "date-fns";
 
 export function useMemberships() {
   const [memberships, setMemberships] = useState<MembershipWithPlan[]>([]);
@@ -97,6 +97,45 @@ export function useMemberships() {
     await fetchMemberships();
   };
 
+  const freezeMembership = async (id: string) => {
+    const { error } = await supabase
+      .from("memberships")
+      .update({ status: "frozen", frozen_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) throw error;
+    await fetchMemberships();
+  };
+
+  const unfreezeMembership = async (id: string) => {
+    const { data: membership, error: fetchError } = await supabase
+      .from("memberships")
+      .select("end_date, frozen_at")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!membership || !membership.frozen_at) throw new Error("Membresía no está congelada");
+
+    const frozenAt = new Date(membership.frozen_at);
+    const now = new Date();
+    const daysFrozen = Math.max(0, differenceInDays(now, frozenAt));
+
+    const newEndDate = addDays(new Date(membership.end_date), daysFrozen);
+
+    const { error: updateError } = await supabase
+      .from("memberships")
+      .update({
+        status: "active",
+        frozen_at: null,
+        end_date: format(newEndDate, "yyyy-MM-dd"),
+      })
+      .eq("id", id);
+
+    if (updateError) throw updateError;
+    await fetchMemberships();
+  };
+
   return {
     memberships,
     loading,
@@ -106,6 +145,8 @@ export function useMemberships() {
     updateMembership,
     deleteMembership,
     cancelMembership,
+    freezeMembership,
+    unfreezeMembership,
   };
 }
 

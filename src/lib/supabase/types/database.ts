@@ -54,8 +54,9 @@ export type Database = {
           user_id: string | null;
           name: string;
           email: string;
-          role: "owner" | "admin" | "trainer";
+          role: "owner" | "admin" | "trainer" | "partner";
           avatar_url: string | null;
+          member_id: string | null;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -66,8 +67,9 @@ export type Database = {
           user_id?: string | null;
           name: string;
           email: string;
-          role: "owner" | "admin" | "trainer";
+          role: "owner" | "admin" | "trainer" | "partner";
           avatar_url?: string | null;
+          member_id?: string | null;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -78,8 +80,9 @@ export type Database = {
           user_id?: string | null;
           name?: string;
           email?: string;
-          role?: "owner" | "admin" | "trainer";
+          role?: "owner" | "admin" | "trainer" | "partner";
           avatar_url?: string | null;
+          member_id?: string | null;
           is_active?: boolean;
           updated_at?: string;
         };
@@ -211,7 +214,8 @@ export type Database = {
           end_date: string;
           amount_paid: number;
           payment_method: "cash" | "card" | "transfer" | null;
-          status: "active" | "expired" | "cancelled";
+          status: "active" | "expired" | "cancelled" | "frozen";
+          frozen_at: string | null;
           notes: string | null;
           created_by: string | null;
           created_at: string;
@@ -224,7 +228,8 @@ export type Database = {
           end_date: string;
           amount_paid: number;
           payment_method?: "cash" | "card" | "transfer" | null;
-          status?: "active" | "expired" | "cancelled";
+          status?: "active" | "expired" | "cancelled" | "frozen";
+          frozen_at?: string | null;
           notes?: string | null;
           created_by?: string | null;
           created_at?: string;
@@ -237,7 +242,8 @@ export type Database = {
           end_date?: string;
           amount_paid?: number;
           payment_method?: "cash" | "card" | "transfer" | null;
-          status?: "active" | "expired" | "cancelled";
+          status?: "active" | "expired" | "cancelled" | "frozen";
+          frozen_at?: string | null;
           notes?: string | null;
           created_by?: string | null;
         };
@@ -664,6 +670,10 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string;
       };
+      get_my_member_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -742,4 +752,15 @@ export type RoutineTemplateWithExercises = RoutineTemplate & {
   routine_template_exercises?: (RoutineTemplateExercise & {
     exercises?: Exercise | null;
   })[];
+};
+
+export type EstablishmentUserWithMember = EstablishmentUser & {
+  members?: Member | null;
+};
+
+// Alias semántico para el rol partner
+export type PartnerUser = EstablishmentUser & {
+  role: "partner";
+  member_id: string;
+  members?: Member | null;
 };
