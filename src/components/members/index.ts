@@ -4,3 +4,4 @@ export { MembershipStatus } from "./MembershipStatus";
 export { PaymentModal } from "./PaymentModal";
 export type { PaymentModalProps } from "./PaymentModal";
 export { EditMembershipModal } from "./EditMembershipModal";
+export { EditMemberProfileModal } from "./EditMemberProfileModal";

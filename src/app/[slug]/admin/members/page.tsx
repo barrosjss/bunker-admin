@@ -8,9 +8,9 @@ import {
   Button, Input, Spinner, EmptyState, Select,
   Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Badge, Modal, ModalFooter
 } from "@/components/ui";
-import { PaymentModal, EditMembershipModal } from "@/components/members";
+import { PaymentModal, EditMembershipModal, EditMemberProfileModal } from "@/components/members";
 import { Header } from "@/components/layout";
-import { Search, Users, Mail, Phone, MessageCircle, Pencil } from "lucide-react";
+import { Search, Users, Mail, Phone, MessageCircle, Pencil, UserCog } from "lucide-react";
 import { format, differenceInDays, startOfDay, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import type { MemberWithMembership, MembershipWithPlan } from "@/lib/supabase/types/database";
@@ -60,6 +60,7 @@ function MembersContent() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>();
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>();
   const [editingMember, setEditingMember] = useState<MemberWithMembership | null>(null);
+  const [editingProfileMember, setEditingProfileMember] = useState<MemberWithMembership | null>(null);
   const [deletingMember, setDeletingMember] = useState<MemberWithMembership | null>(null);
   const [unfreezingMember, setUnfreezingMember] = useState<MemberWithMembership | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -122,6 +123,11 @@ function MembersContent() {
   const openEdit = (e: React.MouseEvent, member: MemberWithMembership) => {
     e.stopPropagation();
     setEditingMember(member);
+  };
+
+  const openEditProfile = (e: React.MouseEvent, member: MemberWithMembership) => {
+    e.stopPropagation();
+    setEditingProfileMember(member);
   };
 
 
@@ -320,7 +326,16 @@ function MembersContent() {
                             variant="ghost"
                             size="sm"
                             className="px-2"
-                            title="Gestionar miembro"
+                            title="Editar datos personales"
+                            onClick={(e) => openEditProfile(e, member)}
+                          >
+                            <UserCog className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="px-2"
+                            title="Gestionar membresía"
                             onClick={(e) => openEdit(e, member)}
                           >
                             <Pencil className="h-4 w-4" />
@@ -357,6 +372,15 @@ function MembersContent() {
         preselectedPlanId={selectedPlanId}
         onSuccess={() => { setIsPaymentModalOpen(false); setSelectedMemberId(undefined); setSelectedPlanId(undefined); refetch(); }}
       />
+
+      {editingProfileMember && (
+        <EditMemberProfileModal
+          isOpen={!!editingProfileMember}
+          onClose={() => setEditingProfileMember(null)}
+          member={editingProfileMember}
+          onSuccess={() => { setEditingProfileMember(null); refetch(); }}
+        />
+      )}
 
       {editingMember && (
         <EditMembershipModal
