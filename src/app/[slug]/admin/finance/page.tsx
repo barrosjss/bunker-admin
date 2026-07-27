@@ -190,22 +190,30 @@ interface DeleteMovementModalProps {
 
 function DeleteMovementModal({ isOpen, movement, onClose, onConfirm }: DeleteMovementModalProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (!movement) return null;
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Eliminar movimiento" size="sm">
+    <Modal isOpen={isOpen} onClose={() => { setError(null); onClose(); }} title="Eliminar movimiento" size="sm">
       <p className="text-text-secondary text-sm mb-4">
         ¿Eliminar el pago de <strong className="text-text-primary">{movement.members?.name ?? "este miembro"}</strong> por{" "}
         <strong className="text-text-primary">{formatCurrency(movement.amount_paid)}</strong>? Esta acción no se puede deshacer.
       </p>
+      {error && <p className="text-sm text-danger mb-4">{error}</p>}
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button variant="secondary" onClick={() => { setError(null); onClose(); }}>Cancelar</Button>
         <Button
           variant="danger"
           isLoading={loading}
           onClick={async () => {
             setLoading(true);
-            await onConfirm();
-            setLoading(false);
+            setError(null);
+            try {
+              await onConfirm();
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Error al eliminar el pago.");
+            } finally {
+              setLoading(false);
+            }
           }}
         >
           Eliminar
@@ -241,15 +249,18 @@ export default function AdminFinancePage() {
     setLastFetchParams({ filter: activeFilter, cf, ct });
     try {
       const { start, end } = getDateRange(activeFilter, cf, ct);
+      // Filtramos por start_date (la fecha real del pago que la admin elige al
+      // registrar), no por created_at (el momento en que se hizo el registro en
+      // el sistema) — pueden diferir cuando registra pagos atrasados.
       const { data, error: dbError } = await supabase
         .from("memberships")
         .select(`id, amount_paid, payment_method, status, start_date, notes, created_at,
           members(name),
           membership_plans(name)
         `)
-        .gte("created_at", start.toISOString())
-        .lte("created_at", end.toISOString())
-        .order("created_at", { ascending: false });
+        .gte("start_date", format(start, "yyyy-MM-dd"))
+        .lte("start_date", format(end, "yyyy-MM-dd"))
+        .order("start_date", { ascending: false });
 
       if (dbError) throw dbError;
       setMovements((data as Movement[]) ?? []);
@@ -288,11 +299,17 @@ export default function AdminFinancePage() {
 
   const handleDeleteConfirm = async () => {
     if (!deletingMovement) return;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("memberships")
       .delete()
-      .eq("id", deletingMovement.id);
+      .eq("id", deletingMovement.id)
+      .select("id");
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error(
+        "No se pudo eliminar el pago (posible restricción de permisos). Contacta al desarrollador."
+      );
+    }
     setDeletingMovement(null);
     await refetch();
   };
@@ -306,7 +323,7 @@ export default function AdminFinancePage() {
 
   // ─── Grouping by date ────────────────────────────────────────────────────
   const grouped = filteredMovements.reduce<Record<string, Movement[]>>((acc, mov) => {
-    const key = format(new Date(mov.created_at), "yyyy-MM-dd");
+    const key = mov.start_date;
     if (!acc[key]) acc[key] = [];
     acc[key].push(mov);
     return acc;
@@ -442,7 +459,6 @@ export default function AdminFinancePage() {
                     const Icon = METHOD_ICONS[method] ?? Banknote;
                     const methodLabel = METHOD_LABELS[method] ?? method;
                     const methodColor = METHOD_COLORS[method] ?? METHOD_COLORS.cash;
-                    const time = format(new Date(mov.created_at), "HH:mm");
 
                     return (
                       <div
@@ -473,7 +489,6 @@ export default function AdminFinancePage() {
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${methodColor}`}>
                               {methodLabel}
                             </span>
-                            <span className="text-xs text-text-secondary">{time}</span>
                           </div>
                         </div>
 

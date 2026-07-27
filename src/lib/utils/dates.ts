@@ -36,7 +36,9 @@ export function calculateEndDate(startDate: string | Date, durationDays: number)
 
 export function daysUntilExpiration(endDate: string | Date): number {
   const d = typeof endDate === "string" ? parseISO(endDate) : endDate;
-  return differenceInDays(d, new Date());
+  // Compare calendar days, not exact timestamps — otherwise the result depends
+  // on what time of day it's checked (e.g. 9am vs 6pm can shift it by a day).
+  return differenceInDays(startOfDay(d), startOfDay(new Date()));
 }
 
 export function isExpired(endDate: string | Date): boolean {
