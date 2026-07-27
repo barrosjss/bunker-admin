@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/formatting";
-import { LayoutDashboard, Dumbbell, LogOut } from "lucide-react";
+import { LayoutDashboard, Dumbbell, LogOut, ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface PartnerSidebarProps {
@@ -17,6 +17,7 @@ export function PartnerSidebar({ slug }: PartnerSidebarProps) {
   const navigation = [
     { name: "Dashboard", href: `/${slug}/partner`, icon: LayoutDashboard },
     { name: "Mis entrenamientos", href: `/${slug}/partner/training`, icon: Dumbbell },
+    { name: "Mis rutinas", href: `/${slug}/partner/routines`, icon: ClipboardList },
   ];
 
   const handleSignOut = async () => {

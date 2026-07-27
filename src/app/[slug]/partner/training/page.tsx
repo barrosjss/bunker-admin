@@ -7,6 +7,7 @@ import { usePartnerMemberId } from "@/hooks/usePartner";
 import { useMemberSessions } from "@/hooks/useTraining";
 import { useExercises } from "@/hooks/useExercises";
 import { SessionForm, SessionHistory, ExerciseSelector } from "@/components/training";
+import { usePartnerRoutines } from "@/hooks/useRoutines";
 import { Header } from "@/components/layout";
 import {
   Card,
@@ -18,7 +19,7 @@ import {
   Badge,
   Select,
 } from "@/components/ui";
-import { Plus, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar, ClipboardList } from "lucide-react";
 import {
   format,
   startOfWeek,
@@ -36,7 +37,7 @@ import { es } from "date-fns/locale";
 import { Exercise, SessionExerciseInsert, TrainingSessionInsert } from "@/lib/supabase/types/database";
 import { createClient } from "@/lib/supabase/client";
 
-type ModalStep = "closed" | "select-exercises" | "configure-session";
+type ModalStep = "closed" | "select-method" | "select-exercises" | "select-routine" | "configure-session";
 type ViewMode = "daily" | "weekly" | "monthly";
 
 export default function PartnerTrainingPage() {
@@ -45,11 +46,13 @@ export default function PartnerTrainingPage() {
 
   const { memberId, loading: loadingProfile } = usePartnerMemberId();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("daily");
+  const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [modalStep, setModalStep] = useState<ModalStep>("closed");
   const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { routines, getLastExerciseStats } = usePartnerRoutines(memberId || "");
 
   const supabase = createClient();
 
@@ -263,7 +266,7 @@ export default function PartnerTrainingPage() {
           {/* New Session Button */}
           <Button
             variant="primary"
-            onClick={() => setModalStep("select-exercises")}
+            onClick={() => setModalStep("select-method")}
             leftIcon={<Plus className="h-5 w-5" />}
             className="h-[46px]"
           >
@@ -299,12 +302,79 @@ export default function PartnerTrainingPage() {
         isOpen={modalStep !== "closed"}
         onClose={closeModal}
         title={
-          modalStep === "select-exercises"
-            ? "Paso 1: Seleccionar ejercicios"
-            : "Paso 2: Configurar sesión"
+          modalStep === "select-method" ? "Seleccionar método" :
+          modalStep === "select-exercises" ? "Paso 1: Seleccionar ejercicios" :
+          modalStep === "select-routine" ? "Seleccionar Rutina" :
+          "Paso 2: Configurar sesión"
         }
         size="xl"
       >
+        {modalStep === "select-method" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+             <Card 
+              hoverable 
+              className="flex flex-col items-center justify-center p-8 text-center gap-4 cursor-pointer border-2 hover:border-primary"
+              onClick={() => setModalStep("select-exercises")}
+            >
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Plus className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg">Sesión Manual</h4>
+                <p className="text-sm text-text-secondary">Selecciona ejercicios uno a uno</p>
+              </div>
+            </Card>
+
+            <Card 
+              hoverable 
+              className="flex flex-col items-center justify-center p-8 text-center gap-4 cursor-pointer border-2 hover:border-primary"
+              onClick={() => setModalStep("select-routine")}
+            >
+              <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center">
+                <ClipboardList className="h-8 w-8 text-success" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg">Desde Rutina</h4>
+                <p className="text-sm text-text-secondary">Usa una de tus rutinas guardadas</p>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {modalStep === "select-routine" && (
+          <div className="space-y-4 py-4">
+            {routines.length === 0 ? (
+               <div className="text-center py-8">
+                 <p className="text-text-secondary mb-4">No tienes rutinas creadas aún.</p>
+                 <Button variant="outline" onClick={() => setModalStep("select-exercises")}>Ir a selección manual</Button>
+               </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {routines.map((routine) => (
+                  <Card 
+                    key={routine.id} 
+                    hoverable 
+                    className="p-4 cursor-pointer border hover:border-primary"
+                    onClick={() => {
+                      setSelectedExercises(routine.routine_template_exercises.map(re => re.exercises).filter(Boolean) as Exercise[]);
+                      setModalStep("configure-session");
+                    }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-bold text-text-primary">{routine.name}</h4>
+                        <p className="text-xs text-text-secondary">{routine.routine_template_exercises.length} ejercicios</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-text-muted" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+            <Button variant="ghost" className="w-full" onClick={() => setModalStep("select-method")}>Volver</Button>
+          </div>
+        )}
+
         {modalStep === "select-exercises" && (
           <ExerciseSelector
             exercises={exercises}
@@ -313,7 +383,7 @@ export default function PartnerTrainingPage() {
               setSelectedExercises(exs);
               setModalStep("configure-session");
             }}
-            onCancel={closeModal}
+            onCancel={() => setModalStep("select-method")}
           />
         )}
 
@@ -323,9 +393,10 @@ export default function PartnerTrainingPage() {
             selectedExercises={selectedExercises}
             defaultMemberId={memberId || undefined}
             onSubmit={handleCreateSession}
-            onBack={() => setModalStep("select-exercises")}
+            onBack={() => setModalStep(selectedExercises.length > 0 ? "select-exercises" : "select-method")}
             onCancel={closeModal}
             isLoading={isSubmitting}
+            getLastStats={getLastExerciseStats}
           />
         )}
       </Modal>

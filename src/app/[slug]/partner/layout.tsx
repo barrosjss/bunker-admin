@@ -5,11 +5,11 @@ import { PartnerMobileNav } from "@/components/layout/PartnerMobileNav";
 
 interface Props {
   children: React.ReactNode;
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }
 
 export default async function PartnerLayout({ children, params }: Props) {
-  const { slug } = await params;
+  const { slug } = params;
   const supabase = await createClient();
 
   const {
