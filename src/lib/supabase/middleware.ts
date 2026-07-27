@@ -71,7 +71,7 @@ export async function updateSession(request: NextRequest) {
   // For authenticated users on admin/trainer routes, verify they have a staff record
   if (user && (isAdminRoute || isTrainerRoute)) {
     const { data: staff } = await supabase
-      .from("staff")
+      .from("establishment_users")
       .select("role")
       .or(`user_id.eq.${user.id},email.eq.${user.email}`)
       .single();

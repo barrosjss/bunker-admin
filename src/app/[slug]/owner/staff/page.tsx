@@ -307,7 +307,7 @@ export default function OwnerStaffPage() {
           .from("members")
           .select("id, name, email")
           .eq("establishment_id", data.id)
-          .eq("status", "active")
+          .eq("is_active", true)
           .order("name");
         setMembers((memberData ?? []) as Member[]);
       }
