@@ -49,7 +49,7 @@ export default function TrainerSessionDetailPage() {
       .select(`
         *,
         members (*),
-        staff (*),
+        establishment_users (*),
         session_exercises (
           *,
           exercises (*)

@@ -320,6 +320,7 @@ export type Database = {
           difficulty: "beginner" | "intermediate" | "advanced" | null;
           created_by: string | null;
           created_at: string;
+          member_id: string | null;
         };
         Insert: {
           id?: string;
@@ -329,6 +330,7 @@ export type Database = {
           difficulty?: "beginner" | "intermediate" | "advanced" | null;
           created_by?: string | null;
           created_at?: string;
+          member_id?: string | null;
         };
         Update: {
           id?: string;
@@ -337,6 +339,7 @@ export type Database = {
           description?: string | null;
           difficulty?: "beginner" | "intermediate" | "advanced" | null;
           created_by?: string | null;
+          member_id?: string | null;
         };
         Relationships: [
           {
@@ -351,6 +354,13 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "establishment_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "routine_templates_member_id_fkey";
+            columns: ["member_id"];
+            isOneToOne: false;
+            referencedRelation: "members";
             referencedColumns: ["id"];
           }
         ];
@@ -512,6 +522,15 @@ export type Database = {
           weight: number | null;
           notes: string | null;
           order_index: number | null;
+          warmup_sets: number | null;
+          warmup_weight: string | null;
+          warmup_reps: string | null;
+          effective_sets: number | null;
+          effective_reps_range: string | null;
+          effective_weight: string | null;
+          unit: string | null;
+          circuit_group: string | null;
+          to_failure: boolean | null;
         };
         Insert: {
           id?: string;
@@ -522,6 +541,15 @@ export type Database = {
           weight?: number | null;
           notes?: string | null;
           order_index?: number | null;
+          warmup_sets?: number | null;
+          warmup_weight?: string | null;
+          warmup_reps?: string | null;
+          effective_sets?: number | null;
+          effective_reps_range?: string | null;
+          effective_weight?: string | null;
+          unit?: string | null;
+          circuit_group?: string | null;
+          to_failure?: boolean | null;
         };
         Update: {
           id?: string;
@@ -532,6 +560,15 @@ export type Database = {
           weight?: number | null;
           notes?: string | null;
           order_index?: number | null;
+          warmup_sets?: number | null;
+          warmup_weight?: string | null;
+          warmup_reps?: string | null;
+          effective_sets?: number | null;
+          effective_reps_range?: string | null;
+          effective_weight?: string | null;
+          unit?: string | null;
+          circuit_group?: string | null;
+          to_failure?: boolean | null;
         };
         Relationships: [
           {

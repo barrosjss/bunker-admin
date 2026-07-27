@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { TrainingSessionWithDetails } from "@/lib/supabase/types/database";
+import { TrainingSessionWithDetails, SessionExercise } from "@/lib/supabase/types/database";
 import { Header } from "@/components/layout";
 import {
   Card,
@@ -14,8 +14,10 @@ import {
   Badge,
   Modal,
   ModalFooter,
+  Input,
+  Checkbox,
 } from "@/components/ui";
-import { ArrowLeft, Calendar, Dumbbell, Weight, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, Calendar, Dumbbell, Weight, Trash2, Edit, RotateCcw, Flame, Target } from "lucide-react";
 import { formatDate } from "@/lib/utils/dates";
 
 export default function PartnerSessionDetailPage() {
@@ -32,12 +34,7 @@ export default function PartnerSessionDetailPage() {
 
   // Inline edit state
   const [editingExercise, setEditingExercise] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{
-    sets_completed: number;
-    reps_completed: string;
-    weight: number;
-    notes: string;
-  }>({ sets_completed: 0, reps_completed: "", weight: 0, notes: "" });
+  const [editValues, setEditValues] = useState<Partial<SessionExercise>>({});
 
   const supabase = createClient();
 
@@ -98,18 +95,18 @@ export default function PartnerSessionDetailPage() {
     }
   };
 
-  const startEditExercise = (ex: {
-    id: string;
-    sets_completed: number | null;
-    reps_completed: string | null;
-    weight: number | null;
-    notes: string | null;
-  }) => {
+  const startEditExercise = (ex: SessionExercise) => {
     setEditingExercise(ex.id);
     setEditValues({
-      sets_completed: ex.sets_completed || 0,
-      reps_completed: ex.reps_completed || "",
-      weight: ex.weight || 0,
+      warmup_sets: ex.warmup_sets || 0,
+      warmup_weight: ex.warmup_weight || "",
+      warmup_reps: ex.warmup_reps || "",
+      effective_sets: ex.effective_sets || 0,
+      effective_reps_range: ex.effective_reps_range || "",
+      effective_weight: ex.effective_weight || "",
+      unit: ex.unit || "kg",
+      circuit_group: ex.circuit_group || "",
+      to_failure: ex.to_failure || false,
       notes: ex.notes || "",
     });
   };
@@ -120,10 +117,11 @@ export default function PartnerSessionDetailPage() {
       const { error } = await supabase
         .from("session_exercises")
         .update({
-          sets_completed: editValues.sets_completed,
-          reps_completed: editValues.reps_completed,
-          weight: editValues.weight || null,
-          notes: editValues.notes || null,
+          ...editValues,
+          // Sync legacy fields
+          sets_completed: editValues.effective_sets,
+          reps_completed: editValues.effective_reps_range,
+          weight: parseFloat(editValues.effective_weight || "0") || null,
         })
         .eq("id", editingExercise);
       if (error) throw error;
@@ -222,7 +220,7 @@ export default function PartnerSessionDetailPage() {
 
           {session.notes && (
             <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-sm text-text-secondary">{session.notes}</p>
+              <p className="text-sm text-text-secondary italic">&quot;{session.notes}&quot;</p>
             </div>
           )}
         </Card>
@@ -234,123 +232,179 @@ export default function PartnerSessionDetailPage() {
 
         <div className="space-y-4">
           {session.session_exercises?.map((exercise, index) => (
-            <Card key={exercise.id}>
+            <Card key={exercise.id} padding="none" className="overflow-hidden">
               {editingExercise === exercise.id ? (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-text-primary">
-                    {exercise.exercises?.name || "Ejercicio"}
-                  </h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs text-text-secondary">Series</label>
-                      <input
-                        type="number"
-                        className="w-full mt-1 px-3 py-2 bg-surface-elevated border border-border rounded-lg text-text-primary"
-                        value={editValues.sets_completed}
-                        onChange={(e) =>
-                          setEditValues({ ...editValues, sets_completed: Number(e.target.value) })
-                        }
-                      />
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between border-b border-border pb-3 mb-3">
+                     <h3 className="font-bold text-text-primary">
+                      {exercise.exercises?.name || "Ejercicio"}
+                    </h3>
+                    <Input
+                      placeholder="Grupo (A1...)"
+                      className="w-24 h-8"
+                      value={editValues.circuit_group || ""}
+                      onChange={(e) => setEditValues({ ...editValues, circuit_group: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Calentamiento Edit */}
+                    <div className="bg-surface/50 p-3 rounded-lg border border-border/50">
+                      <p className="text-xs font-bold text-text-secondary uppercase mb-3">Calentamiento</p>
+                      <div className="grid grid-cols-3 gap-2">
+                         <Input
+                          type="number"
+                          label="Sets"
+                          value={editValues.warmup_sets || 0}
+                          onChange={(e) => setEditValues({ ...editValues, warmup_sets: Number(e.target.value) })}
+                        />
+                         <Input
+                          label="Peso"
+                          value={editValues.warmup_weight || ""}
+                          onChange={(e) => setEditValues({ ...editValues, warmup_weight: e.target.value })}
+                        />
+                         <Input
+                          label="Reps"
+                          value={editValues.warmup_reps || ""}
+                          onChange={(e) => setEditValues({ ...editValues, warmup_reps: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-text-secondary">Reps</label>
-                      <input
-                        className="w-full mt-1 px-3 py-2 bg-surface-elevated border border-border rounded-lg text-text-primary"
-                        value={editValues.reps_completed}
-                        onChange={(e) =>
-                          setEditValues({ ...editValues, reps_completed: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-text-secondary">Peso (kg)</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        className="w-full mt-1 px-3 py-2 bg-surface-elevated border border-border rounded-lg text-text-primary"
-                        value={editValues.weight}
-                        onChange={(e) =>
-                          setEditValues({ ...editValues, weight: Number(e.target.value) })
-                        }
-                      />
+
+                    {/* Efectivas Edit */}
+                    <div className="bg-primary/5 p-3 rounded-lg border border-primary/10">
+                      <p className="text-xs font-bold text-primary uppercase mb-3">Efectivas</p>
+                      <div className="grid grid-cols-3 gap-2">
+                         <Input
+                          type="number"
+                          label="Sets"
+                          value={editValues.effective_sets || 0}
+                          onChange={(e) => setEditValues({ ...editValues, effective_sets: Number(e.target.value) })}
+                        />
+                         <Input
+                          label="Peso"
+                          value={editValues.effective_weight || ""}
+                          onChange={(e) => setEditValues({ ...editValues, effective_weight: e.target.value })}
+                        />
+                         <Input
+                          label="Reps"
+                          value={editValues.effective_reps_range || ""}
+                          onChange={(e) => setEditValues({ ...editValues, effective_reps_range: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex items-center gap-4 mt-3">
+                         <Checkbox
+                          label="Al Fallo"
+                          checked={editValues.to_failure || false}
+                          onChange={(checked) => setEditValues({ ...editValues, to_failure: checked })}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <input
-                    className="w-full px-3 py-2 bg-surface-elevated border border-border rounded-lg text-text-primary"
+
+                  <Input
                     placeholder="Notas..."
-                    value={editValues.notes}
-                    onChange={(e) =>
-                      setEditValues({ ...editValues, notes: e.target.value })
-                    }
+                    value={editValues.notes || ""}
+                    onChange={(e) => setEditValues({ ...editValues, notes: e.target.value })}
                   />
-                  <div className="flex gap-2">
-                    <Button variant="primary" size="sm" onClick={saveExerciseEdit}>
-                      Guardar
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingExercise(null)}>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="secondary" size="sm" onClick={() => setEditingExercise(null)}>
                       Cancelar
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={saveExerciseEdit}>
+                      Guardar Cambios
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-start gap-4">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-success/10 text-success font-bold shrink-0">
-                    {index + 1}
-                  </div>
-
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-text-primary mb-2">
-                      {exercise.exercises?.name || "Ejercicio"}
-                    </h3>
-
-                    <div className="flex flex-wrap gap-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Dumbbell className="h-4 w-4 text-text-secondary" />
-                        <span className="text-text-primary">
-                          {exercise.sets_completed} series x {exercise.reps_completed} reps
-                        </span>
+                <div className="flex flex-col">
+                  {/* Header */}
+                  <div className="p-4 bg-surface-elevated/30 border-b border-border flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 text-primary font-bold text-sm">
+                        {index + 1}
                       </div>
-
-                      {exercise.weight && exercise.weight > 0 && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Weight className="h-4 w-4 text-text-secondary" />
-                          <span className="text-text-primary">
-                            {exercise.weight} kg
-                          </span>
-                        </div>
-                      )}
+                      <div>
+                        <h3 className="font-bold text-text-primary">
+                          {exercise.exercises?.name || "Ejercicio"}
+                        </h3>
+                        {exercise.circuit_group && (
+                          <Badge variant="warning" size="sm" className="mt-1">
+                            {exercise.circuit_group}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => startEditExercise(exercise)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-danger hover:text-danger hover:bg-danger/10"
+                        onClick={() => handleDeleteExercise(exercise.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
 
-                    {exercise.notes && (
-                      <p className="mt-2 text-sm text-text-secondary">
+                  {/* Body */}
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Calentamiento Display */}
+                    {exercise.warmup_sets ? (
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 bg-surface-elevated p-2 rounded-full">
+                           <RotateCcw className="h-4 w-4 text-text-secondary" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-text-secondary uppercase">Calentamiento</p>
+                          <p className="text-text-primary font-medium">
+                            {exercise.warmup_sets} series <span className="text-text-secondary">@</span> {exercise.warmup_weight} {exercise.unit}
+                          </p>
+                          <p className="text-sm text-text-secondary">
+                            {exercise.warmup_reps} reps
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                       <div className="text-sm text-text-muted italic flex items-center gap-2">
+                         <RotateCcw className="h-4 w-4 opacity-30" />
+                         Sin calentamiento registrado
+                       </div>
+                    )}
+
+                    {/* Efectivas Display */}
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 bg-primary/10 p-2 rounded-full">
+                         <Flame className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-primary uppercase">Efectivas</p>
+                        <p className="text-text-primary font-bold text-lg">
+                          {exercise.effective_sets} <span className="text-sm font-normal text-text-secondary">x</span> {exercise.effective_reps_range} <span className="text-sm font-normal text-text-secondary">@</span> {exercise.effective_weight} {exercise.unit}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {exercise.to_failure && (
+                            <Badge variant="danger" size="sm" leftIcon={<Target className="h-3 w-3" />}>
+                              Al Fallo
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {exercise.notes && (
+                    <div className="px-4 pb-4">
+                      <div className="bg-surface p-3 rounded-lg border border-border/50 text-sm text-text-secondary">
+                        <p className="font-semibold text-xs mb-1 uppercase opacity-50">Notas:</p>
                         {exercise.notes}
-                      </p>
-                    )}
-
-                    {exercise.exercises?.muscle_group && (
-                      <Badge variant="default" size="sm" className="mt-2">
-                        {exercise.exercises.muscle_group}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startEditExercise(exercise)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-danger hover:text-danger hover:bg-danger/10"
-                      onClick={() => handleDeleteExercise(exercise.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

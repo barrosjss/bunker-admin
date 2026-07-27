@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm, useFieldArray, Resolver } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -9,16 +10,25 @@ import {
   Select,
   Textarea,
   Card,
+  Checkbox,
 } from "@/components/ui";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { ChevronLeft, Trash2, Dumbbell, Flame, RotateCcw } from "lucide-react";
 import { Member, Exercise, SessionExerciseInsert } from "@/lib/supabase/types/database";
 
 const exerciseSchema = z.object({
   exercise_id: z.string().min(1),
   exercise_name: z.string(),
-  sets_completed: z.coerce.number().min(1, "Min 1"),
-  reps_completed: z.string().min(1, "Requerido"),
-  weight: z.coerce.number().optional(),
+  // Warmup
+  warmup_sets: z.coerce.number().default(0),
+  warmup_weight: z.string().optional(),
+  warmup_reps: z.string().optional(),
+  // Effective
+  effective_sets: z.coerce.number().min(1, "Min 1"),
+  effective_reps_range: z.string().min(1, "Requerido"),
+  effective_weight: z.string().min(1, "Requerido"),
+  unit: z.string().default("kg"),
+  circuit_group: z.string().optional(),
+  to_failure: z.boolean().default(false),
   notes: z.string().optional(),
 });
 
@@ -42,6 +52,11 @@ interface SessionFormProps {
   onBack: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  getLastStats?: (exerciseId: string) => Promise<{
+    last_weight: string;
+    last_unit: string;
+    last_effective_reps: string;
+  } | null>;
 }
 
 export function SessionForm({
@@ -52,11 +67,13 @@ export function SessionForm({
   onBack,
   onCancel,
   isLoading,
+  getLastStats,
 }: SessionFormProps) {
   const {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<SessionFormData>({
     resolver: zodResolver(sessionSchema) as Resolver<SessionFormData>,
@@ -67,13 +84,33 @@ export function SessionForm({
       exercises: selectedExercises.map((ex) => ({
         exercise_id: ex.id,
         exercise_name: ex.name,
-        sets_completed: 3,
-        reps_completed: "10",
-        weight: 0,
+        warmup_sets: 0,
+        warmup_weight: "",
+        warmup_reps: "",
+        effective_sets: 3,
+        effective_reps_range: "10",
+        effective_weight: "0",
+        unit: "kg",
+        circuit_group: "",
+        to_failure: false,
         notes: "",
       })),
     },
   });
+
+  // Fetch last stats on mount
+  useEffect(() => {
+    if (!getLastStats) return;
+
+    selectedExercises.forEach(async (ex, index) => {
+      const stats = await getLastStats(ex.id);
+      if (stats) {
+        setValue(`exercises.${index}.effective_weight`, stats.last_weight);
+        setValue(`exercises.${index}.unit`, stats.last_unit);
+        setValue(`exercises.${index}.effective_reps_range`, stats.last_effective_reps);
+      }
+    });
+  }, [getLastStats, selectedExercises, setValue]);
 
   const { fields, remove } = useFieldArray({
     control,
@@ -83,13 +120,23 @@ export function SessionForm({
   const handleFormSubmit = async (data: SessionFormData) => {
     const sessionExercises: SessionExerciseInsert[] = data.exercises.map(
       (ex, index) => ({
+        session_id: "", // Will be filled by parent
         exercise_id: ex.exercise_id,
-        sets_completed: ex.sets_completed,
-        reps_completed: ex.reps_completed,
-        weight: ex.weight || null,
+        warmup_sets: ex.warmup_sets,
+        warmup_weight: ex.warmup_weight || null,
+        warmup_reps: ex.warmup_reps || null,
+        effective_sets: ex.effective_sets,
+        effective_reps_range: ex.effective_reps_range,
+        effective_weight: ex.effective_weight,
+        unit: ex.unit,
+        circuit_group: ex.circuit_group || null,
+        to_failure: ex.to_failure,
         notes: ex.notes || null,
         order_index: index,
-        session_id: "",
+        // Legacy compatibility
+        sets_completed: ex.effective_sets,
+        reps_completed: ex.effective_reps_range,
+        weight: parseFloat(ex.effective_weight) || null,
       })
     );
 
@@ -123,72 +170,129 @@ export function SessionForm({
       </div>
 
       {/* Exercises */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-text-primary">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-text-primary flex items-center gap-2">
+            <Dumbbell className="h-5 w-5 text-primary" />
             Ejercicios ({fields.length})
           </h3>
         </div>
 
         {errors.exercises?.message && (
-          <p className="text-sm text-danger mb-2">{errors.exercises.message}</p>
+          <p className="text-sm text-danger">{errors.exercises.message}</p>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {fields.map((field, index) => (
-            <Card key={field.id} variant="elevated" padding="sm">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-text-primary text-sm">
+            <Card key={field.id} variant="elevated" padding="none" className="overflow-hidden border-l-4 border-l-primary">
+              <div className="p-4 bg-surface-elevated/50 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                    {index + 1}
+                  </span>
+                  <span className="font-bold text-text-primary">
                     {field.exercise_name}
                   </span>
+                </div>
+                <div className="flex items-center gap-2">
+                   <Input
+                    placeholder="Grupo (A1, B1...)"
+                    className="w-24 h-8 text-xs"
+                    {...register(`exercises.${index}.circuit_group`)}
+                  />
                   {fields.length > 1 && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => remove(index)}
-                      className="text-danger hover:text-danger hover:bg-danger/10"
+                      className="text-danger hover:text-danger hover:bg-danger/10 h-8 w-8 p-0"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
+              </div>
 
-                <input
-                  type="hidden"
-                  {...register(`exercises.${index}.exercise_id`)}
-                />
-                <input
-                  type="hidden"
-                  {...register(`exercises.${index}.exercise_name`)}
-                />
+              <div className="p-4 space-y-4">
+                <input type="hidden" {...register(`exercises.${index}.exercise_id`)} />
+                <input type="hidden" {...register(`exercises.${index}.exercise_name`)} />
 
-                <div className="grid grid-cols-3 gap-3">
-                  <Input
-                    type="number"
-                    label="Series"
-                    placeholder="3"
-                    error={errors.exercises?.[index]?.sets_completed?.message}
-                    {...register(`exercises.${index}.sets_completed`)}
-                  />
-                  <Input
-                    label="Reps"
-                    placeholder="10"
-                    error={errors.exercises?.[index]?.reps_completed?.message}
-                    {...register(`exercises.${index}.reps_completed`)}
-                  />
-                  <Input
-                    type="number"
-                    label="Peso (kg)"
-                    placeholder="0"
-                    step="0.5"
-                    {...register(`exercises.${index}.weight`)}
-                  />
+                {/* Calentamiento */}
+                <div className="bg-surface/50 p-3 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    <RotateCcw className="h-3 w-3" />
+                    Calentamiento
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input
+                      type="number"
+                      label="Series"
+                      placeholder="0"
+                      {...register(`exercises.${index}.warmup_sets`)}
+                    />
+                    <Input
+                      label="Peso"
+                      placeholder="Poco"
+                      {...register(`exercises.${index}.warmup_weight`)}
+                    />
+                    <Input
+                      label="Reps"
+                      placeholder="15-20"
+                      {...register(`exercises.${index}.warmup_reps`)}
+                    />
+                  </div>
+                </div>
+
+                {/* Efectivas */}
+                <div className="bg-primary/5 p-3 rounded-lg border border-primary/10">
+                  <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-primary uppercase tracking-wider">
+                    <Flame className="h-3 w-3" />
+                    Series Efectivas
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input
+                      type="number"
+                      label="Series *"
+                      placeholder="3"
+                      error={errors.exercises?.[index]?.effective_sets?.message}
+                      {...register(`exercises.${index}.effective_sets`)}
+                    />
+                    <Input
+                      label="Peso *"
+                      placeholder="100"
+                      error={errors.exercises?.[index]?.effective_weight?.message}
+                      {...register(`exercises.${index}.effective_weight`)}
+                    />
+                    <Input
+                      label="Reps/Rango *"
+                      placeholder="10-12"
+                      error={errors.exercises?.[index]?.effective_reps_range?.message}
+                      {...register(`exercises.${index}.effective_reps_range`)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-4">
+                      <Select
+                        className="w-24"
+                        options={[
+                          { value: "kg", label: "kg" },
+                          { value: "placas", label: "placas" },
+                          { value: "lbs", label: "lbs" },
+                        ]}
+                        {...register(`exercises.${index}.unit`)}
+                      />
+                      <Checkbox
+                        label="Al Fallo"
+                        {...register(`exercises.${index}.to_failure`)}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <Input
-                  placeholder="Notas del ejercicio..."
+                  placeholder="Notas adicionales..."
                   {...register(`exercises.${index}.notes`)}
                 />
               </div>
@@ -198,8 +302,8 @@ export function SessionForm({
       </div>
 
       <Textarea
-        label="Notas de la sesión"
-        placeholder="Observaciones generales de la sesión..."
+        label="Notas generales de la sesión"
+        placeholder="¿Cómo te sentiste hoy?..."
         {...register("notes")}
       />
 

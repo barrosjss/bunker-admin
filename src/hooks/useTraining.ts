@@ -35,7 +35,7 @@ export function useTrainingSessions(filters?: string | TrainingFilters) {
       .select(`
         *,
         members (*),
-        staff (*),
+        establishment_users (*),
         session_exercises (
           *,
           exercises (*)
@@ -125,7 +125,7 @@ export function useMemberSessions(memberId: string) {
       .select(`
         *,
         members (*),
-        staff (*),
+        establishment_users (*),
         session_exercises (
           *,
           exercises (*)
