@@ -17,7 +17,7 @@ import {
   Input,
   Checkbox,
 } from "@/components/ui";
-import { ArrowLeft, Calendar, Dumbbell, Weight, Trash2, Edit, RotateCcw, Flame, Target } from "lucide-react";
+import { ArrowLeft, Calendar, Trash2, Edit, RotateCcw, Flame, Target } from "lucide-react";
 import { formatDate } from "@/lib/utils/dates";
 
 export default function PartnerSessionDetailPage() {
@@ -296,7 +296,7 @@ export default function PartnerSessionDetailPage() {
                          <Checkbox
                           label="Al Fallo"
                           checked={editValues.to_failure || false}
-                          onChange={(checked) => setEditValues({ ...editValues, to_failure: checked })}
+                          onChange={(e) => setEditValues({ ...editValues, to_failure: e.target.checked })}
                         />
                       </div>
                     </div>
@@ -388,7 +388,8 @@ export default function PartnerSessionDetailPage() {
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           {exercise.to_failure && (
-                            <Badge variant="danger" size="sm" leftIcon={<Target className="h-3 w-3" />}>
+                            <Badge variant="danger" size="sm" className="gap-1">
+                              <Target className="h-3 w-3" />
                               Al Fallo
                             </Badge>
                           )}

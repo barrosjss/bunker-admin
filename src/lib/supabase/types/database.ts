@@ -711,6 +711,14 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string;
       };
+      get_last_exercise_stats: {
+        Args: { p_member_id: string; p_exercise_id: string };
+        Returns: {
+          last_weight: string | null;
+          last_unit: string | null;
+          last_effective_reps: string | null;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

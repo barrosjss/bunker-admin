@@ -346,7 +346,7 @@ export default function PartnerTrainingPage() {
             {routines.length === 0 ? (
                <div className="text-center py-8">
                  <p className="text-text-secondary mb-4">No tienes rutinas creadas aún.</p>
-                 <Button variant="outline" onClick={() => setModalStep("select-exercises")}>Ir a selección manual</Button>
+                 <Button variant="secondary" onClick={() => setModalStep("select-exercises")}>Ir a selección manual</Button>
                </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">

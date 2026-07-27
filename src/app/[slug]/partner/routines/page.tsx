@@ -5,7 +5,7 @@ import { usePartnerMemberId } from "@/hooks/usePartner";
 import { usePartnerRoutinePlans, RoutinePlan, PlanDay, PlanExercise } from "@/hooks/useRoutines";
 import { Header } from "@/components/layout";
 import { Button, Spinner, Modal, ModalFooter, Input, Badge } from "@/components/ui";
-import { Plus, Trash2, ChevronRight, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronRight, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
