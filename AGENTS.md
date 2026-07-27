@@ -37,6 +37,20 @@ Si tienes dudas sobre el **por qué (negocio)**, el **qué (requerimientos)** o 
 - Schema cambiado → actualizar `src/lib/supabase/types/database.ts`.
 - Migración nueva → seguir `docs/runbooks/apply-migration.md`.
 
+## Agent skills
+
+### Issue tracker
+
+GitHub issues in `barrosjss/bunker-admin`, via `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context, but repo's own layout: `docs/architecture.md` + `docs/decisions/` instead of `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
+
 ---
 
 > [!TIP]
