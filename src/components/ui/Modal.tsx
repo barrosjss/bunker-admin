@@ -98,14 +98,14 @@ function MobileSheet({
         <Drawer.Content
           className={cn(
             "fixed inset-x-0 bottom-0 z-50 flex flex-col",
-            "max-h-[92vh] bg-surface border-t border-border rounded-t-2xl shadow-xl",
+            "max-h-[92vh] bg-surface border-t border-border rounded-t-2xl",
             "pb-[env(safe-area-inset-bottom)]"
           )}
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? "modal-title" : undefined}
         >
-          <Drawer.Handle className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-border" />
+          <Drawer.Handle className="shrink-0 bg-transparent" />
           <ModalHeader
             title={title}
             description={description}
