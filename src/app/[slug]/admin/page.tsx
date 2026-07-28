@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Users, CreditCard, AlertTriangle, XCircle, Phone, MessageCircle } from "lucide-react";
 import { Card } from "@/components/ui";
-import { format, addDays, parseISO } from "date-fns";
+import { format, parseISO, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
+import { getMembershipStatus } from "@/lib/utils/membershipStatus";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -39,76 +40,47 @@ export default async function AdminDashboardPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const today = format(new Date(), "yyyy-MM-dd");
-  const in7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
-
-  // Fetch raw data — los counts se calculan por miembro único (no por fila)
-  const [
-    { count: totalMembers },
-    { data: activeMembershipsRaw },
-    { data: expiringRaw },
-    { data: expiredRaw },
-    { data: overdueList },
-    { data: expiringList },
-  ] = await Promise.all([
+  // Una sola query + la misma clasificación que usa /admin/members, para que
+  // "activos / por vencer / en mora" cuenten exactamente lo mismo en ambas
+  // vistas (antes el dashboard contaba pases de 1 día vencidos como mora,
+  // cosa que Miembros excluye a propósito).
+  const [{ count: totalMembers }, { data: activeMemberships }] = await Promise.all([
     supabase.from("members").select("*", { count: "exact", head: true }),
     supabase
       .from("memberships")
-      .select("member_id")
-      .eq("status", "active")
-      .gt("end_date", in7Days),
-    supabase
-      .from("memberships")
-      .select("member_id")
-      .eq("status", "active")
-      .gte("end_date", today)
-      .lte("end_date", in7Days),
-    supabase
-      .from("memberships")
-      .select("member_id")
-      .eq("status", "active")
-      .lt("end_date", today),
-    // Membresías vencidas (mora) — más antiguas primero
-    supabase
-      .from("memberships")
-      .select("id, end_date, member_id, members(id, name, phone)")
-      .eq("status", "active")
-      .lt("end_date", today)
-      .order("end_date", { ascending: true })
-      .limit(50),
-    // Membresías por vencer en 7 días — las más próximas primero
-    supabase
-      .from("memberships")
-      .select("id, end_date, member_id, members(id, name, phone)")
-      .eq("status", "active")
-      .gte("end_date", today)
-      .lte("end_date", in7Days)
-      .order("end_date", { ascending: true })
-      .limit(50),
+      .select("id, end_date, status, member_id, membership_plans(duration_days), members(id, name, phone)")
+      .eq("status", "active"),
   ]);
 
-  // Contar miembros únicos (no filas de membresía)
-  const activeMembers = new Set(activeMembershipsRaw?.map((m) => m.member_id) ?? []).size;
-  const expiringSoon = new Set(expiringRaw?.map((m) => m.member_id) ?? []).size;
-  const expired = new Set(expiredRaw?.map((m) => m.member_id) ?? []).size;
+  type Row = NonNullable<typeof activeMemberships>[number];
+  const classified = (activeMemberships ?? []).map((row) => ({
+    row,
+    ms: getMembershipStatus({
+      end_date: row.end_date,
+      status: row.status,
+      membership_plans: Array.isArray(row.membership_plans) ? row.membership_plans[0] : row.membership_plans,
+    }),
+  }));
 
-  // Deduplicar por miembro (un mismo miembro puede tener varias membresías de prueba)
-  function dedup<T extends { member_id: string }>(list: T[]): T[] {
-    const seen = new Set<string>();
-    return list.filter((m) => {
-      if (seen.has(m.member_id)) return false;
-      seen.add(m.member_id);
-      return true;
-    }).slice(0, 8);
+  const activeMembers = classified.filter((c) => c.ms.status === "active").length;
+  const expiringSoon = classified.filter((c) => c.ms.status === "expiring").length;
+  const expired = classified.filter((c) => c.ms.status === "expired").length;
+
+  function toSortedRows(status: "expired" | "expiring"): Row[] {
+    return classified
+      .filter((c) => c.ms.status === status)
+      .map((c) => c.row)
+      .sort((a, b) => a.end_date.localeCompare(b.end_date))
+      .slice(0, 8);
   }
 
-  const uniqueOverdue = overdueList ? dedup(overdueList) : [];
-  const uniqueExpiring = expiringList ? dedup(expiringList) : [];
+  const uniqueOverdue = toSortedRows("expired");
+  const uniqueExpiring = toSortedRows("expiring");
 
   const todayLabel = format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es });
   const base = `/${slug}/admin`;
 
-  const todayDate = parseISO(today);
+  const todayDate = startOfDay(new Date());
 
   return (
     <div className="p-4 sm:p-6">

@@ -11,34 +11,10 @@ import {
 import { PaymentModal, EditMembershipModal, EditMemberProfileModal } from "@/components/members";
 import { Header } from "@/components/layout";
 import { Search, Users, Mail, Phone, MessageCircle, Pencil, UserCog } from "lucide-react";
-import { format, differenceInDays, startOfDay, parseISO, isValid } from "date-fns";
+import { parseISO, isValid, format } from "date-fns";
 import { es } from "date-fns/locale";
-import type { MemberWithMembership, MembershipWithPlan } from "@/lib/supabase/types/database";
-
-type MembershipStatusKey = "none" | "active" | "expiring" | "expired" | "frozen";
-
-function getMembershipStatus(membership?: MembershipWithPlan | null) {
-  if (!membership?.end_date) return { status: "none" as MembershipStatusKey, label: "Sin membresía", variant: "default" as const, diffDays: null };
-  if (membership.status === "frozen") return { status: "frozen" as MembershipStatusKey, label: "Congelada", variant: "default" as const, diffDays: null };
-  
-  const today = startOfDay(new Date());
-  const endDate = startOfDay(parseISO(membership.end_date));
-  const diffDays = differenceInDays(endDate, today);
-  
-  const isDayPass = membership.membership_plans?.duration_days === 1;
-
-  if (diffDays < 0) {
-    if (isDayPass) return { status: "none" as MembershipStatusKey, label: "Pasadía consumido", variant: "default" as const, diffDays };
-    return { status: "expired" as MembershipStatusKey, label: "Vencida", variant: "danger" as const, diffDays };
-  }
-  
-  if (diffDays <= 7) {
-    if (isDayPass) return { status: "active" as MembershipStatusKey, label: "Pasadía Activo", variant: "success" as const, diffDays };
-    return { status: "expiring" as MembershipStatusKey, label: `Vence en ${diffDays}d`, variant: "warning" as const, diffDays };
-  }
-  
-  return { status: "active" as MembershipStatusKey, label: "Activa", variant: "success" as const, diffDays };
-}
+import type { MemberWithMembership } from "@/lib/supabase/types/database";
+import { getMembershipStatus, type MembershipStatusKey } from "@/lib/utils/membershipStatus";
 
 function formatDate(dateString?: string | null) {
   if (!dateString) return "-";
