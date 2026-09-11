@@ -69,7 +69,7 @@ Las URLs usan el `slug` del establecimiento:
 |-----|--------|-------------------|
 | `owner` | `/[slug]/owner` | Configura el gym, gestiona el equipo |
 | `admin` | `/[slug]/admin` | Miembros, planes, pagos, asignación de trainers |
-| `trainer` | `/[slug]/trainer` → `/trainer` | Solo sus miembros asignados y sesiones |
+| `trainer` | `/[slug]/trainer` → `/trainer` | Sus miembros y sesiones, sus personalizados y evaluaciones físicas |
 | `partner` | `/[slug]/partner` | Solo sus propias sesiones de entrenamiento |
 
 Los dashboards son completamente independientes — sin panel selector, sin cambio de rol sin cerrar sesión. El middleware de Next.js redirige según el rol del usuario autenticado.
@@ -91,7 +91,35 @@ training_sessions       → sesiones de entrenamiento
 session_exercises       → ejercicios dentro de una sesión
 trainer_members         → asignación trainer ↔ miembro
 registration_forms      → formulario público por gym (is_enabled toggle)
+trainer_services        → catálogo de servicios del entrenador (kind: personal_training
+                          | evaluation | other). Precio y duración los fija el entrenador.
+service_subscriptions   → cobros de esos servicios. Caja del entrenador, separada de
+                          `memberships`. Recurrente → end_date; pago único → end_date NULL.
+physical_evaluations    → pliegues cutáneos, peso y estatura. IMC y % de grasa se
+                          calculan en la app, no se guardan.
 ```
+
+## Servicios del entrenador
+
+La membresía del gym (`memberships`) es obligatoria para todos y es lo que alimenta
+`/[slug]/admin/finance`. Aparte de eso, el entrenador vende sus propios servicios y esa
+plata **no** entra a la caja del gym: vive en `service_subscriptions`, con RLS que la
+restringe al entrenador dueño del cobro y al `owner`. El `admin` no la ve.
+
+- **Personalizado**: mensual recurrente. Ser personalizado = tener una
+  `service_subscriptions` activa sobre un servicio con `kind = 'personal_training'`.
+  No se usa `trainer_members` para esto.
+- **Evaluación física**: pago único, incluida sin costo para quien tenga el
+  personalizado vigente (`included_with_personal_training`). Si no es personalizado,
+  la evaluación se cobra y queda enlazada vía `physical_evaluations.payment_id`.
+
+Al renovar no se mutan las filas viejas: cada cobro es un período y el vigente es el de
+`end_date` más lejana. El estado (al día / por vencer / vencido) se deriva en
+`lib/utils/serviceStatus.ts`, espejo de `membershipStatus.ts`.
+
+El % de grasa usa Durnin & Womersley (1974) sobre la suma de 4 pliegues + Siri, en
+`lib/utils/anthropometry.ts`. Necesita `members.sex` y `members.birth_date`; la edad se
+calcula a la fecha de la evaluación, no a hoy.
 
 ## Flujo de autenticación
 

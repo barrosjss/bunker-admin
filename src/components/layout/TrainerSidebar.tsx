@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/formatting";
 import {
   LayoutDashboard,
+  UserCheck,
+  ClipboardCheck,
   Users,
   Dumbbell,
   ClipboardList,
@@ -16,6 +18,8 @@ import { PanelSwitcher } from "./PanelSwitcher";
 
 const navigation = [
   { name: "Dashboard", href: "/trainer", icon: LayoutDashboard },
+  { name: "Personalizados", href: "/trainer/personalizados", icon: UserCheck },
+  { name: "Evaluaciones", href: "/trainer/evaluaciones", icon: ClipboardCheck },
   { name: "Entrenamientos", href: "/trainer/training", icon: Dumbbell },
   { name: "Miembros", href: "/trainer/members", icon: Users },
   { name: "Ejercicios", href: "/trainer/exercises", icon: ClipboardList },

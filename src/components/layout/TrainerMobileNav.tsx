@@ -5,18 +5,20 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/formatting";
 import {
   LayoutDashboard,
+  UserCheck,
+  ClipboardCheck,
   Users,
   Dumbbell,
-  ClipboardList,
-  BookOpen,
 } from "lucide-react";
 
+// Cinco slots como máximo para que entren en el pulgar. Ejercicios y rutinas
+// quedan en el acceso rápido del dashboard, que es donde menos estorban.
 const navigation = [
   { name: "Inicio", href: "/trainer", icon: LayoutDashboard },
-  { name: "Entreno", href: "/trainer/training", icon: Dumbbell },
+  { name: "Personaliz.", href: "/trainer/personalizados", icon: UserCheck },
+  { name: "Evaluación", href: "/trainer/evaluaciones", icon: ClipboardCheck },
   { name: "Miembros", href: "/trainer/members", icon: Users },
-  { name: "Ejercicios", href: "/trainer/exercises", icon: ClipboardList },
-  { name: "Rutinas", href: "/trainer/routines", icon: BookOpen },
+  { name: "Entreno", href: "/trainer/training", icon: Dumbbell },
 ];
 
 export function TrainerMobileNav() {

@@ -112,6 +112,7 @@ export type Database = {
           phone: string | null;
           emergency_contact: string | null;
           birth_date: string | null;
+          sex: "male" | "female" | null;
           photo_url: string | null;
           notes: string | null;
           status: "active" | "inactive" | "suspended";
@@ -127,6 +128,7 @@ export type Database = {
           phone?: string | null;
           emergency_contact?: string | null;
           birth_date?: string | null;
+          sex?: "male" | "female" | null;
           photo_url?: string | null;
           notes?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -142,6 +144,7 @@ export type Database = {
           phone?: string | null;
           emergency_contact?: string | null;
           birth_date?: string | null;
+          sex?: "male" | "female" | null;
           photo_url?: string | null;
           notes?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -694,6 +697,243 @@ export type Database = {
           }
         ];
       };
+      trainer_services: {
+        Row: {
+          id: string;
+          establishment_id: string;
+          trainer_id: string | null;
+          name: string;
+          description: string | null;
+          price: number;
+          billing_type: "recurring" | "one_off";
+          duration_days: number | null;
+          kind: "personal_training" | "evaluation" | "other";
+          included_with_personal_training: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          establishment_id: string;
+          trainer_id?: string | null;
+          name: string;
+          description?: string | null;
+          price?: number;
+          billing_type?: "recurring" | "one_off";
+          duration_days?: number | null;
+          kind?: "personal_training" | "evaluation" | "other";
+          included_with_personal_training?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          establishment_id?: string;
+          trainer_id?: string | null;
+          name?: string;
+          description?: string | null;
+          price?: number;
+          billing_type?: "recurring" | "one_off";
+          duration_days?: number | null;
+          kind?: "personal_training" | "evaluation" | "other";
+          included_with_personal_training?: boolean;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trainer_services_establishment_id_fkey";
+            columns: ["establishment_id"];
+            isOneToOne: false;
+            referencedRelation: "establishments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "trainer_services_trainer_id_fkey";
+            columns: ["trainer_id"];
+            isOneToOne: false;
+            referencedRelation: "establishment_users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      service_subscriptions: {
+        Row: {
+          id: string;
+          establishment_id: string;
+          member_id: string;
+          service_id: string;
+          trainer_id: string | null;
+          start_date: string;
+          end_date: string | null;
+          amount_paid: number;
+          payment_method: "cash" | "card" | "transfer" | null;
+          status: "active" | "expired" | "cancelled" | "frozen";
+          frozen_at: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          establishment_id: string;
+          member_id: string;
+          service_id: string;
+          trainer_id?: string | null;
+          start_date?: string;
+          end_date?: string | null;
+          amount_paid?: number;
+          payment_method?: "cash" | "card" | "transfer" | null;
+          status?: "active" | "expired" | "cancelled" | "frozen";
+          frozen_at?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          establishment_id?: string;
+          member_id?: string;
+          service_id?: string;
+          trainer_id?: string | null;
+          start_date?: string;
+          end_date?: string | null;
+          amount_paid?: number;
+          payment_method?: "cash" | "card" | "transfer" | null;
+          status?: "active" | "expired" | "cancelled" | "frozen";
+          frozen_at?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "service_subscriptions_member_id_fkey";
+            columns: ["member_id"];
+            isOneToOne: false;
+            referencedRelation: "members";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "service_subscriptions_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "trainer_services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "service_subscriptions_trainer_id_fkey";
+            columns: ["trainer_id"];
+            isOneToOne: false;
+            referencedRelation: "establishment_users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      physical_evaluations: {
+        Row: {
+          id: string;
+          establishment_id: string;
+          member_id: string;
+          trainer_id: string | null;
+          evaluated_on: string;
+          weight_kg: number | null;
+          height_cm: number | null;
+          tricipital_left: number | null;
+          tricipital_right: number | null;
+          bicipital_left: number | null;
+          bicipital_right: number | null;
+          cuadriceps_left: number | null;
+          cuadriceps_right: number | null;
+          pantorrilla_left: number | null;
+          pantorrilla_right: number | null;
+          pectoral_left: number | null;
+          pectoral_right: number | null;
+          subescapular: number | null;
+          suprailiaco: number | null;
+          abdominal: number | null;
+          payment_id: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          establishment_id: string;
+          member_id: string;
+          trainer_id?: string | null;
+          evaluated_on?: string;
+          weight_kg?: number | null;
+          height_cm?: number | null;
+          tricipital_left?: number | null;
+          tricipital_right?: number | null;
+          bicipital_left?: number | null;
+          bicipital_right?: number | null;
+          cuadriceps_left?: number | null;
+          cuadriceps_right?: number | null;
+          pantorrilla_left?: number | null;
+          pantorrilla_right?: number | null;
+          pectoral_left?: number | null;
+          pectoral_right?: number | null;
+          subescapular?: number | null;
+          suprailiaco?: number | null;
+          abdominal?: number | null;
+          payment_id?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          establishment_id?: string;
+          member_id?: string;
+          trainer_id?: string | null;
+          evaluated_on?: string;
+          weight_kg?: number | null;
+          height_cm?: number | null;
+          tricipital_left?: number | null;
+          tricipital_right?: number | null;
+          bicipital_left?: number | null;
+          bicipital_right?: number | null;
+          cuadriceps_left?: number | null;
+          cuadriceps_right?: number | null;
+          pantorrilla_left?: number | null;
+          pantorrilla_right?: number | null;
+          pectoral_left?: number | null;
+          pectoral_right?: number | null;
+          subescapular?: number | null;
+          suprailiaco?: number | null;
+          abdominal?: number | null;
+          payment_id?: string | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "physical_evaluations_member_id_fkey";
+            columns: ["member_id"];
+            isOneToOne: false;
+            referencedRelation: "members";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "physical_evaluations_trainer_id_fkey";
+            columns: ["trainer_id"];
+            isOneToOne: false;
+            referencedRelation: "establishment_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "physical_evaluations_payment_id_fkey";
+            columns: ["payment_id"];
+            isOneToOne: false;
+            referencedRelation: "service_subscriptions";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -743,6 +983,9 @@ export type TrainingSession = Database["public"]["Tables"]["training_sessions"][
 export type SessionExercise = Database["public"]["Tables"]["session_exercises"]["Row"];
 export type RegistrationForm = Database["public"]["Tables"]["registration_forms"]["Row"];
 export type DiscountCoupon = Database["public"]["Tables"]["discount_coupons"]["Row"];
+export type TrainerService = Database["public"]["Tables"]["trainer_services"]["Row"];
+export type ServiceSubscription = Database["public"]["Tables"]["service_subscriptions"]["Row"];
+export type PhysicalEvaluation = Database["public"]["Tables"]["physical_evaluations"]["Row"];
 
 // ─── Tipos de inserción ───────────────────────────────────────────────────────
 export type EstablishmentInsert = Database["public"]["Tables"]["establishments"]["Insert"];
@@ -758,6 +1001,9 @@ export type TrainingSessionInsert = Database["public"]["Tables"]["training_sessi
 export type SessionExerciseInsert = Database["public"]["Tables"]["session_exercises"]["Insert"];
 export type RegistrationFormInsert = Database["public"]["Tables"]["registration_forms"]["Insert"];
 export type DiscountCouponInsert = Database["public"]["Tables"]["discount_coupons"]["Insert"];
+export type TrainerServiceInsert = Database["public"]["Tables"]["trainer_services"]["Insert"];
+export type ServiceSubscriptionInsert = Database["public"]["Tables"]["service_subscriptions"]["Insert"];
+export type PhysicalEvaluationInsert = Database["public"]["Tables"]["physical_evaluations"]["Insert"];
 
 // ─── Tipos de actualización ───────────────────────────────────────────────────
 export type EstablishmentUpdate = Database["public"]["Tables"]["establishments"]["Update"];
@@ -773,6 +1019,9 @@ export type TrainingSessionUpdate = Database["public"]["Tables"]["training_sessi
 export type SessionExerciseUpdate = Database["public"]["Tables"]["session_exercises"]["Update"];
 export type RegistrationFormUpdate = Database["public"]["Tables"]["registration_forms"]["Update"];
 export type DiscountCouponUpdate = Database["public"]["Tables"]["discount_coupons"]["Update"];
+export type TrainerServiceUpdate = Database["public"]["Tables"]["trainer_services"]["Update"];
+export type ServiceSubscriptionUpdate = Database["public"]["Tables"]["service_subscriptions"]["Update"];
+export type PhysicalEvaluationUpdate = Database["public"]["Tables"]["physical_evaluations"]["Update"];
 
 // ─── Tipos extendidos con relaciones ─────────────────────────────────────────
 export type MembershipWithPlan = Membership & {
@@ -808,4 +1057,21 @@ export type PartnerUser = EstablishmentUser & {
   role: "partner";
   member_id: string;
   members?: Member | null;
+};
+
+// ─── Servicios del entrenador ────────────────────────────────────────────────
+export type ServiceSubscriptionWithDetails = ServiceSubscription & {
+  trainer_services?: TrainerService | null;
+  members?: Member | null;
+};
+
+/** Un miembro visto desde el negocio del entrenador: su personalizado vigente. */
+export type PersonalTrainingClient = Member & {
+  subscriptions: ServiceSubscriptionWithDetails[];
+  current_subscription: ServiceSubscriptionWithDetails | null;
+};
+
+export type PhysicalEvaluationWithMember = PhysicalEvaluation & {
+  members?: Member | null;
+  establishment_users?: EstablishmentUser | null;
 };
