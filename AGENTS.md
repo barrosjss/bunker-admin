@@ -14,7 +14,7 @@ Si tienes dudas sobre el **por qué (negocio)**, el **qué (requerimientos)** o 
 
 ## 📜 Reglas de Oro (No Obvias)
 
-1. **Supabase solo vía panel web**: Toda configuración de Supabase se hace desde el panel web. Los archivos en `src/lib/supabase/migrations/` son registro histórico, no se ejecutan con CLI. No generes `config.toml` ni comandos `supabase db push`. Ver ADR 001.
+1. **Supabase sin CLI local**: Las migraciones se aplican contra el proyecto remoto, por el panel web o por el MCP (`apply_migration` para DDL, nunca `execute_sql`). Nunca generes `config.toml` ni comandos `supabase db push`. Con MCP: inspecciona antes, confirma con el humano antes de escribir, y corre `get_advisors` después. El archivo en `src/lib/supabase/migrations/` se escribe igual. Ver ADR 001.
 
 2. **Todo Supabase en `src/lib/supabase/`**: Clientes, tipos, queries y migraciones. Sin carpetas supabase en ningún otro lugar.
 
