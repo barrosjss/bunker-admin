@@ -766,6 +766,7 @@ export type Database = {
           member_id: string;
           service_id: string;
           trainer_id: string | null;
+          concept: string | null;
           start_date: string;
           end_date: string | null;
           amount_paid: number;
@@ -782,6 +783,7 @@ export type Database = {
           member_id: string;
           service_id: string;
           trainer_id?: string | null;
+          concept?: string | null;
           start_date?: string;
           end_date?: string | null;
           amount_paid?: number;
@@ -798,6 +800,7 @@ export type Database = {
           member_id?: string;
           service_id?: string;
           trainer_id?: string | null;
+          concept?: string | null;
           start_date?: string;
           end_date?: string | null;
           amount_paid?: number;

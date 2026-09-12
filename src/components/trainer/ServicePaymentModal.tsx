@@ -12,6 +12,7 @@ import type { RegisterPaymentInput } from "@/hooks/usePersonalTraining";
 
 interface PaymentFormData {
   member_id: string;
+  concept: string;
   start_date: string;
   amount_paid: number | string;
   payment_method: "cash" | "card" | "transfer";
@@ -58,6 +59,7 @@ export function ServicePaymentModal({
   } = useForm<PaymentFormData>({
     defaultValues: {
       member_id: preselectedMemberId || "",
+      concept: service?.name ?? "",
       start_date: format(new Date(), "yyyy-MM-dd"),
       amount_paid: "",
       payment_method: "cash",
@@ -74,6 +76,7 @@ export function ServicePaymentModal({
     setSubmitError(null);
     reset({
       member_id: preselectedMemberId || "",
+      concept: service?.name ?? "",
       start_date: format(new Date(), "yyyy-MM-dd"),
       amount_paid: service?.price ?? "",
       payment_method: "cash",
@@ -111,6 +114,7 @@ export function ServicePaymentModal({
       await onSubmit({
         memberId: data.member_id,
         service,
+        concept: data.concept,
         startDate: data.start_date,
         amountPaid: Number(data.amount_paid) || 0,
         paymentMethod: data.payment_method,
@@ -145,6 +149,14 @@ export function ServicePaymentModal({
             {...register("member_id", { required: "Selecciona un miembro" })}
           />
         )}
+
+        <Input
+          label="Concepto"
+          placeholder="Ej. Plan mensual personalizado"
+          hint="Lo que estás cobrando. Se precarga con el servicio, pero escribí lo que quieras."
+          error={errors.concept?.message}
+          {...register("concept", { required: "Escribe el concepto del cobro" })}
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input

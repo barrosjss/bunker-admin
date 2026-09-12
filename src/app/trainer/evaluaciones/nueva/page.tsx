@@ -48,6 +48,7 @@ export default function NuevaEvaluacionPage() {
       const payment = await registerPayment({
         memberId: values.member_id,
         service: evaluationService,
+        concept: evaluationService.name,
         startDate: values.evaluated_on,
         amountPaid: charge.amount,
         paymentMethod: charge.paymentMethod,

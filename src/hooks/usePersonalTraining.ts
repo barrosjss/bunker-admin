@@ -15,6 +15,8 @@ import type {
 export interface RegisterPaymentInput {
   memberId: string;
   service: TrainerService;
+  /** Texto libre: qué está pagando. Lo escribe el entrenador en cada cobro. */
+  concept: string;
   startDate: string;
   amountPaid: number;
   paymentMethod: "cash" | "card" | "transfer";
@@ -134,6 +136,7 @@ export function usePersonalTraining() {
         member_id: input.memberId,
         service_id: service.id,
         trainer_id: trainer.id,
+        concept: input.concept.trim() || service.name,
         start_date: input.startDate,
         end_date: endDate,
         amount_paid: input.amountPaid,

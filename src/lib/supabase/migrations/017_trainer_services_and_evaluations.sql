@@ -101,6 +101,11 @@ CREATE TABLE IF NOT EXISTS service_subscriptions (
   service_id       UUID NOT NULL REFERENCES trainer_services(id) ON DELETE RESTRICT,
   trainer_id       UUID REFERENCES establishment_users(id) ON DELETE SET NULL,
 
+  -- Texto libre que escribe el entrenador al cobrar: qué plan/servicio está
+  -- pagando el miembro. Se precarga con el nombre del servicio pero lo puede
+  -- reemplazar por lo que quiera. NULL = usar el nombre del servicio.
+  concept          TEXT,
+
   start_date       DATE NOT NULL DEFAULT CURRENT_DATE,
   end_date         DATE,
 

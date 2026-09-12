@@ -2,60 +2,73 @@
 
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  CalendarClock,
+  Mail,
+  Phone,
+  UserCheck,
+  UserMinus,
+} from "lucide-react";
 import { useMember } from "@/hooks/useMembers";
-import { useMemberSessions } from "@/hooks/useTraining";
-import { useMemberEvaluations } from "@/hooks/usePhysicalEvaluations";
 import { usePersonalTraining } from "@/hooks/usePersonalTraining";
 import { useTrainerServices } from "@/hooks/useTrainerServices";
 import { MembershipStatus } from "@/components/members";
 import { ServicePaymentModal } from "@/components/trainer";
-import { getServiceStatus } from "@/lib/utils/serviceStatus";
-import {
-  calculateBmi,
-  calculateBodyFat,
-  formatPercentage,
-} from "@/lib/utils/anthropometry";
-import { formatCurrency } from "@/lib/utils/formatting";
 import { Header } from "@/components/layout";
 import {
-  Card,
-  Button,
   Avatar,
   Badge,
+  Button,
+  Card,
+  Modal,
+  ModalFooter,
   Spinner,
-  EmptyState,
 } from "@/components/ui";
+import { getServiceStatus } from "@/lib/utils/serviceStatus";
+import { formatDate } from "@/lib/utils/dates";
 import {
-  ArrowLeft,
-  Phone,
-  Mail,
-  Calendar,
-  AlertCircle,
-  ClipboardCheck,
-  Dumbbell,
-  ClipboardList,
-  Plus,
-  UserCheck,
-} from "lucide-react";
-import { formatDate, formatRelative } from "@/lib/utils/dates";
-import { getMemberStatusLabel } from "@/lib/utils/formatting";
-import Link from "next/link";
+  formatCurrency,
+  getMemberStatusLabel,
+  getPaymentMethodLabel,
+} from "@/lib/utils/formatting";
 
 export default function TrainerMemberDetailPage() {
   const params = useParams();
   const memberId = params.id as string;
 
   const { member, loading, error } = useMember(memberId);
-  const { sessions, loading: sessionsLoading } = useMemberSessions(memberId);
-  const { evaluations, loading: evaluationsLoading, refetch: refetchEvaluations } =
-    useMemberEvaluations(memberId);
-  const { clients, registerPayment, suggestedStartDate, refetch: refetchPersonalTraining } =
-    usePersonalTraining();
+  const {
+    clients,
+    registerPayment,
+    cancelSubscription,
+    suggestedStartDate,
+    refetch: refetchPersonalTraining,
+  } = usePersonalTraining();
   const { personalTrainingService } = useTrainerServices();
+
   const [chargeOpen, setChargeOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const client = useMemo(() => clients.find((c) => c.id === memberId), [clients, memberId]);
-  const ptStatus = getServiceStatus(client?.current_subscription);
+  const current = client?.current_subscription ?? null;
+  const ptStatus = getServiceStatus(current);
+  const isCancelled = current?.status === "cancelled";
+
+  const handleCancel = async () => {
+    if (!current) return;
+    setCancelling(true);
+    try {
+      await cancelSubscription(current.id);
+      setCancelOpen(false);
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -69,12 +82,8 @@ export default function TrainerMemberDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6">
         <AlertCircle className="h-12 w-12 text-danger mb-4" />
-        <h2 className="text-xl font-semibold text-text-primary mb-2">
-          Miembro no encontrado
-        </h2>
-        <p className="text-text-secondary mb-4">
-          {error || "El miembro que buscas no existe."}
-        </p>
+        <h2 className="text-xl font-semibold text-text-primary mb-2">Miembro no encontrado</h2>
+        <p className="text-text-secondary mb-4">{error || "El miembro que buscas no existe."}</p>
         <Link href="/trainer/members">
           <Button variant="secondary">Volver a miembros</Button>
         </Link>
@@ -88,12 +97,22 @@ export default function TrainerMemberDetailPage() {
     suspended: "danger",
   };
 
+  // El acento del bloque de personalizado sigue al estado de cobro, para que
+  // "vencido" se lea de un vistazo sin tener que buscar el badge.
+  const accent =
+    ptStatus.status === "expired"
+      ? { bg: "bg-danger/10", fg: "text-danger" }
+      : ptStatus.status === "expiring"
+        ? { bg: "bg-warning/10", fg: "text-warning" }
+        : ptStatus.status === "none"
+          ? { bg: "bg-surface-elevated", fg: "text-text-secondary" }
+          : { bg: "bg-success/10", fg: "text-success" };
+
   return (
     <div>
       <Header title="" showSearch={false} />
 
       <div className="p-6">
-        {/* Back button */}
         <Link
           href="/trainer/members"
           className="inline-flex items-center gap-2 text-text-secondary hover:text-text-primary mb-6 transition-colors"
@@ -102,7 +121,7 @@ export default function TrainerMemberDetailPage() {
           Volver a miembros
         </Link>
 
-        {/* Member header */}
+        {/* Ficha del miembro */}
         <Card className="mb-6">
           <div className="flex flex-col md:flex-row md:items-start gap-6">
             <Avatar
@@ -112,25 +131,10 @@ export default function TrainerMemberDetailPage() {
               className="h-24 w-24 text-2xl"
             />
             <div className="flex-1">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-text-primary mb-1">
-                    {member.name}
-                  </h1>
-                  <Badge variant={statusVariants[member.status]}>
-                    {getMemberStatusLabel(member.status)}
-                  </Badge>
-                </div>
-                <Link href={`/trainer/training?member=${memberId}`}>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<Plus className="h-4 w-4" />}
-                  >
-                    Nueva sesión
-                  </Button>
-                </Link>
-              </div>
+              <h1 className="text-2xl font-bold text-text-primary mb-1">{member.name}</h1>
+              <Badge variant={statusVariants[member.status]} className="mb-4">
+                {getMemberStatusLabel(member.status)}
+              </Badge>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 {member.phone && (
@@ -162,210 +166,115 @@ export default function TrainerMemberDetailPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Membership status (read-only) */}
-          <div>
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Membresía
-            </h2>
-            <MembershipStatus
-              membership={member.current_membership as never}
-              showRenewButton={false}
-            />
+        {/* Membresía del gym — informativa; la cobra y renueva el admin */}
+        <div className="mb-6">
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="text-lg font-semibold text-text-primary">Membresía del gym</h2>
+            <span className="text-sm text-text-secondary">Solo lectura</span>
           </div>
-
-          {/* Recent sessions */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-text-primary">
-                Entrenamientos recientes
-              </h2>
-              <Link href={`/trainer/training/${memberId}`}>
-                <Button variant="ghost" size="sm">
-                  Ver historial
-                </Button>
-              </Link>
-            </div>
-
-            <Card padding="none">
-              {sessionsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Spinner />
-                </div>
-              ) : sessions.length === 0 ? (
-                <EmptyState
-                  icon={Dumbbell}
-                  title="Sin entrenamientos"
-                  description="Este miembro aún no tiene sesiones registradas."
-                  action={
-                    <Link href={`/trainer/training?member=${memberId}`}>
-                      <Button variant="primary" size="sm">
-                        Registrar sesión
-                      </Button>
-                    </Link>
-                  }
-                />
-              ) : (
-                <div className="divide-y divide-border">
-                  {sessions.slice(0, 5).map((session) => (
-                    <Link
-                      key={session.id}
-                      href={`/trainer/training/session/${session.id}`}
-                      className="flex items-center gap-4 p-4 hover:bg-surface-elevated transition-colors"
-                    >
-                      <div className="p-2 rounded-lg bg-success/10">
-                        <ClipboardList className="h-5 w-5 text-success" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-text-primary">
-                          {formatDate(session.date)}
-                        </p>
-                        <p className="text-sm text-text-secondary">
-                          {session.session_exercises?.length || 0} ejercicios
-                        </p>
-                      </div>
-                      <span className="text-xs text-text-secondary">
-                        {formatRelative(session.created_at)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
+          <MembershipStatus
+            membership={member.current_membership as never}
+            showRenewButton={false}
+          />
         </div>
 
-        {/* Personalizado y evaluaciones */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          {/* Personalizado */}
-          <div>
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Personalizado
-            </h2>
-            <Card>
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-success/10">
-                    <UserCheck className="h-5 w-5 text-success" />
-                  </div>
-                  <div>
-                    <Badge variant={ptStatus.variant}>{ptStatus.label}</Badge>
-                    {client?.current_subscription?.end_date && (
-                      <p className="text-sm text-text-secondary mt-1">
-                        Hasta el{" "}
-                        {formatDate(client.current_subscription.end_date, "d MMM yyyy")}
-                      </p>
-                    )}
-                  </div>
+        {/* Personalizado — esto sí lo gestiona el entrenador */}
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Personalizado</h2>
+
+          <Card>
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className={`p-3 rounded-xl flex-shrink-0 ${accent.bg}`}>
+                  <UserCheck className={`h-6 w-6 ${accent.fg}`} />
                 </div>
+
+                <div className="min-w-0">
+                  <Badge variant={ptStatus.variant}>{ptStatus.label}</Badge>
+
+                  {current?.end_date && !isCancelled ? (
+                    <div className="mt-2 space-y-1">
+                      <p className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                        <CalendarClock className="h-4 w-4" />
+                        {formatDate(current.start_date, "d MMM yyyy")} →{" "}
+                        {formatDate(current.end_date, "d MMM yyyy")}
+                      </p>
+                      <p className="text-sm text-text-secondary">
+                        {current.concept || current.trainer_services?.name}
+                        {" · "}
+                        {formatCurrency(Number(current.amount_paid || 0))}
+                        {current.payment_method &&
+                          ` · ${getPaymentMethodLabel(current.payment_method)}`}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-text-secondary">
+                      No es personalizado. Al darlo de alta, la evaluación física le queda
+                      incluida.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 flex-shrink-0">
+                {current && !isCancelled && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<UserMinus className="h-4 w-4" />}
+                    onClick={() => setCancelOpen(true)}
+                  >
+                    Dar de baja
+                  </Button>
+                )}
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="sm"
                   onClick={() => setChargeOpen(true)}
                   disabled={!personalTrainingService}
                 >
-                  {client ? "Cobrar" : "Dar de alta"}
+                  {current && !isCancelled ? "Registrar pago" : "Dar de alta"}
                 </Button>
               </div>
-
-              {client && client.subscriptions.length > 0 ? (
-                <div className="divide-y divide-border border-t border-border -mx-4 px-4">
-                  {client.subscriptions.slice(0, 4).map((sub) => (
-                    <div key={sub.id} className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="text-sm text-text-primary">
-                          {formatDate(sub.start_date, "d MMM yyyy")}
-                          {sub.end_date && ` → ${formatDate(sub.end_date, "d MMM yyyy")}`}
-                        </p>
-                        <p className="text-xs text-text-secondary">
-                          {sub.trainer_services?.name}
-                        </p>
-                      </div>
-                      <span className="text-sm font-medium text-text-primary">
-                        {formatCurrency(Number(sub.amount_paid || 0))}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-text-secondary">
-                  No es personalizado. Al darlo de alta, la evaluación física le queda
-                  incluida.
-                </p>
-              )}
-            </Card>
-          </div>
-
-          {/* Evaluaciones físicas */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-text-primary">
-                Evaluaciones físicas
-              </h2>
-              <Link href={`/trainer/evaluaciones/nueva?member=${memberId}`}>
-                <Button variant="ghost" size="sm" leftIcon={<Plus className="h-4 w-4" />}>
-                  Nueva
-                </Button>
-              </Link>
             </div>
 
-            <Card padding="none">
-              {evaluationsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Spinner />
-                </div>
-              ) : evaluations.length === 0 ? (
-                <EmptyState
-                  icon={ClipboardCheck}
-                  title="Sin evaluaciones"
-                  description="Registra la primera para empezar a seguir su evolución."
-                  action={
-                    <Link href={`/trainer/evaluaciones/nueva?member=${memberId}`}>
-                      <Button variant="primary" size="sm">
-                        Nueva evaluación
-                      </Button>
-                    </Link>
-                  }
-                />
-              ) : (
+            {client && client.subscriptions.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-sm font-medium text-text-secondary mb-2">Historial de pagos</p>
                 <div className="divide-y divide-border">
-                  {evaluations.slice(0, 5).map((evaluation) => {
-                    const bmi = calculateBmi(evaluation.weight_kg, evaluation.height_cm);
-                    const bodyFat = calculateBodyFat(
-                      evaluation,
-                      member,
-                      evaluation.evaluated_on
-                    );
+                  {client.subscriptions.map((sub) => {
+                    const subStatus = getServiceStatus(sub);
                     return (
-                      <Link
-                        key={evaluation.id}
-                        href={`/trainer/evaluaciones/${evaluation.id}`}
-                        className="flex items-center gap-4 p-4 hover:bg-surface-elevated transition-colors"
-                      >
-                        <div className="p-2 rounded-lg bg-success/10">
-                          <ClipboardCheck className="h-5 w-5 text-success" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-text-primary">
-                            {formatDate(evaluation.evaluated_on, "d MMM yyyy")}
+                      <div key={sub.id} className="flex items-center justify-between gap-4 py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-text-primary truncate">
+                            {sub.concept || sub.trainer_services?.name || "Cobro"}
                           </p>
-                          <p className="text-sm text-text-secondary">
-                            {evaluation.weight_kg !== null && `${evaluation.weight_kg} kg`}
-                            {bmi && ` · IMC ${bmi.value.toFixed(1)}`}
+                          <p className="text-xs text-text-secondary truncate">
+                            {formatDate(sub.start_date, "d MMM yyyy")}
+                            {sub.end_date && ` → ${formatDate(sub.end_date, "d MMM yyyy")}`}
+                            {" · "}
+                            {sub.payment_method
+                              ? getPaymentMethodLabel(sub.payment_method)
+                              : "Sin método"}
+                            {sub.notes && ` · ${sub.notes}`}
                           </p>
                         </div>
-                        {bodyFat.ok && (
-                          <Badge variant={bodyFat.result.variant}>
-                            {formatPercentage(bodyFat.result.percentage)}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <Badge variant={subStatus.variant} size="sm">
+                            {subStatus.label}
                           </Badge>
-                        )}
-                      </Link>
+                          <span className="text-sm font-medium text-text-primary tabular-nums">
+                            {formatCurrency(Number(sub.amount_paid || 0))}
+                          </span>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
-              )}
-            </Card>
-          </div>
+              </div>
+            )}
+          </Card>
         </div>
       </div>
 
@@ -377,13 +286,30 @@ export default function TrainerMemberDetailPage() {
         preselectedMemberId={memberId}
         suggestedStartDate={suggestedStartDate}
         title={`Cobrar personalizado a ${member.name}`}
-        submitLabel={client ? "Registrar cobro" : "Dar de alta y cobrar"}
+        submitLabel={current && !isCancelled ? "Registrar pago" : "Dar de alta y cobrar"}
         onSubmit={registerPayment}
-        onSuccess={() => {
-          refetchPersonalTraining();
-          refetchEvaluations();
-        }}
+        onSuccess={refetchPersonalTraining}
       />
+
+      <Modal
+        isOpen={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        title="Dar de baja el personalizado"
+        size="sm"
+      >
+        <p className="text-text-secondary">
+          {member.name} deja de ser personalizado. El historial de pagos se conserva y podés
+          volver a darlo de alta cuando quieras.
+        </p>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setCancelOpen(false)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" isLoading={cancelling} onClick={handleCancel}>
+            Dar de baja
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }
