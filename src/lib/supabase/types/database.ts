@@ -767,6 +767,7 @@ export type Database = {
           service_id: string;
           trainer_id: string | null;
           concept: string | null;
+          billing_source: "paid" | "included_in_membership";
           start_date: string;
           end_date: string | null;
           amount_paid: number;
@@ -784,6 +785,7 @@ export type Database = {
           service_id: string;
           trainer_id?: string | null;
           concept?: string | null;
+          billing_source?: "paid" | "included_in_membership";
           start_date?: string;
           end_date?: string | null;
           amount_paid?: number;
@@ -801,6 +803,7 @@ export type Database = {
           service_id?: string;
           trainer_id?: string | null;
           concept?: string | null;
+          billing_source?: "paid" | "included_in_membership";
           start_date?: string;
           end_date?: string | null;
           amount_paid?: number;

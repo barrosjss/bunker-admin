@@ -108,7 +108,11 @@ restringe al entrenador dueño del cobro y al `owner`. El `admin` no la ve.
 
 - **Personalizado**: mensual recurrente. Ser personalizado = tener una
   `service_subscriptions` activa sobre un servicio con `kind = 'personal_training'`.
-  No se usa `trainer_members` para esto.
+  No se usa `trainer_members` para esto. Se activa de dos formas, según
+  `billing_source`: `paid` (el entrenador cobra aparte, período según
+  `duration_days` del servicio) o `included_in_membership` (ya venía con la
+  membresía del gym: `amount_paid = 0` y el período termina cuando vence esa
+  membresía). Lo incluido no suma a la caja del entrenador.
 - **Evaluación física**: pago único, incluida sin costo para quien tenga el
   personalizado vigente (`included_with_personal_training`). Si no es personalizado,
   la evaluación se cobra y queda enlazada vía `physical_evaluations.payment_id`.

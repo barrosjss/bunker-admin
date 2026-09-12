@@ -23,6 +23,16 @@ export interface RegisterPaymentInput {
   notes?: string | null;
 }
 
+export interface ActivateIncludedInput {
+  memberId: string;
+  service: TrainerService;
+  concept: string;
+  /** El período copia el de la membresía del gym: mientras esa valga, esto vale. */
+  startDate: string;
+  endDate: string;
+  notes?: string | null;
+}
+
 /**
  * La caja del entrenador: sus cobros de personalizado y de servicios sueltos.
  *
@@ -137,10 +147,44 @@ export function usePersonalTraining() {
         service_id: service.id,
         trainer_id: trainer.id,
         concept: input.concept.trim() || service.name,
+        billing_source: "paid",
         start_date: input.startDate,
         end_date: endDate,
         amount_paid: input.amountPaid,
         payment_method: input.paymentMethod,
+        status: "active",
+        notes: input.notes || null,
+        created_by: trainer.id,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    await fetchSubscriptions();
+    return data;
+  };
+
+  /**
+   * Activa el personalizado sin cobro, porque el miembro ya lo tiene incluido
+   * en lo que pagó por la membresía del gym. No entra a la caja del entrenador:
+   * queda como período vigente con amount_paid en 0 y billing_source marcado.
+   */
+  const activateIncluded = async (input: ActivateIncludedInput) => {
+    if (!trainer) throw new Error("No hay entrenador autenticado");
+
+    const { data, error } = await supabase
+      .from("service_subscriptions")
+      .insert({
+        establishment_id: trainer.establishmentId,
+        member_id: input.memberId,
+        service_id: input.service.id,
+        trainer_id: trainer.id,
+        concept: input.concept.trim() || input.service.name,
+        billing_source: "included_in_membership",
+        start_date: input.startDate,
+        end_date: input.endDate,
+        amount_paid: 0,
+        payment_method: null,
         status: "active",
         notes: input.notes || null,
         created_by: trainer.id,
@@ -177,6 +221,7 @@ export function usePersonalTraining() {
     error,
     refetch: fetchSubscriptions,
     registerPayment,
+    activateIncluded,
     cancelSubscription,
     deleteSubscription,
     suggestedStartDate,
