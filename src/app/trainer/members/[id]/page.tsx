@@ -71,6 +71,8 @@ export default function TrainerMemberDetailPage() {
   const current = client?.current_subscription ?? null;
   const ptStatus = getServiceStatus(current);
   const isCancelled = current?.status === "cancelled";
+  const isActive = !!current && !isCancelled;
+  const ptPrice = Number(personalTrainingService?.price ?? 0);
 
   /**
    * Toda la plata que este miembro le pagó al entrenador: personalizado y
@@ -262,21 +264,21 @@ export default function TrainerMemberDetailPage() {
           </div>
 
           <Card>
-            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                <div className={`p-3 rounded-xl flex-shrink-0 ${accent.bg}`}>
-                  <UserCheck className={`h-6 w-6 ${accent.fg}`} />
-                </div>
+            {isActive && current ? (
+              /* Activo: período vigente y acciones sobre él */
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className={`p-3 rounded-xl flex-shrink-0 ${accent.bg}`}>
+                    <UserCheck className={`h-6 w-6 ${accent.fg}`} />
+                  </div>
 
-                <div className="min-w-0">
-                  <Badge variant={ptStatus.variant}>{ptStatus.label}</Badge>
-
-                  {current?.end_date && !isCancelled ? (
+                  <div className="min-w-0">
+                    <Badge variant={ptStatus.variant}>{ptStatus.label}</Badge>
                     <div className="mt-2 space-y-1">
                       <p className="inline-flex items-center gap-2 text-sm text-text-secondary">
                         <CalendarClock className="h-4 w-4" />
-                        {formatDate(current.start_date, "d MMM yyyy")} →{" "}
-                        {formatDate(current.end_date, "d MMM yyyy")}
+                        {formatDate(current.start_date, "d MMM yyyy")}
+                        {current.end_date && ` → ${formatDate(current.end_date, "d MMM yyyy")}`}
                       </p>
                       <p className="text-sm text-text-secondary">
                         {current.concept || current.trainer_services?.name}
@@ -286,17 +288,10 @@ export default function TrainerMemberDetailPage() {
                           ` · ${getPaymentMethodLabel(current.payment_method)}`}
                       </p>
                     </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-text-secondary">
-                      No es personalizado. Al darlo de alta, la evaluación física le queda
-                      incluida.
-                    </p>
-                  )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex gap-2 flex-shrink-0">
-                {current && !isCancelled && (
+                <div className="flex gap-2 flex-shrink-0">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -305,17 +300,79 @@ export default function TrainerMemberDetailPage() {
                   >
                     Dar de baja
                   </Button>
-                )}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setChargeOpen(true)}
-                  disabled={!personalTrainingService}
-                >
-                  {current && !isCancelled ? "Registrar pago" : "Dar de alta"}
-                </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setChargeOpen(true)}
+                    disabled={!personalTrainingService}
+                  >
+                    Registrar pago
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Inactivo: qué se cobra y qué pasa al activar, antes de apretar */
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-3 rounded-xl bg-surface-elevated flex-shrink-0">
+                    <UserCheck className="h-6 w-6 text-text-secondary" />
+                  </div>
+                  <div className="min-w-0">
+                    <Badge variant="default">
+                      {isCancelled ? "Dado de baja" : "Sin personalizado"}
+                    </Badge>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      El personalizado se cobra aparte de la membresía del gym, y le incluye la
+                      evaluación física sin costo.
+                    </p>
+                  </div>
+                </div>
+
+                {personalTrainingService && (
+                  <div className="rounded-lg bg-surface-elevated border border-border p-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-medium text-text-primary">
+                        {personalTrainingService.name}
+                      </span>
+                      <span className="text-lg font-bold text-text-primary">
+                        {ptPrice > 0 ? formatCurrency(ptPrice) : "Sin precio"}
+                        {personalTrainingService.duration_days && (
+                          <span className="text-sm font-normal text-text-secondary">
+                            {" / "}
+                            {personalTrainingService.duration_days} días
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    {ptPrice === 0 && (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm text-warning">
+                          Sin precio configurado, el cobro se registra en $0.
+                        </p>
+                        <Button variant="secondary" size="sm" onClick={() => setServicesOpen(true)}>
+                          Ponerle precio
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+                  <p className="text-sm text-text-secondary">
+                    Al activarlo queda registrado el primer pago.
+                  </p>
+                  <Button
+                    variant="primary"
+                    leftIcon={<UserCheck className="h-5 w-5" />}
+                    onClick={() => setChargeOpen(true)}
+                    disabled={!personalTrainingService}
+                  >
+                    Activar y registrar pago
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -446,8 +503,12 @@ export default function TrainerMemberDetailPage() {
         members={[member]}
         preselectedMemberId={memberId}
         suggestedStartDate={suggestedStartDate}
-        title={`Cobrar personalizado a ${member.name}`}
-        submitLabel={current && !isCancelled ? "Registrar pago" : "Dar de alta y cobrar"}
+        title={
+          isActive
+            ? `Registrar pago de ${member.name}`
+            : `Activar personalizado — ${member.name}`
+        }
+        submitLabel={isActive ? "Registrar pago" : "Activar y registrar pago"}
         onSubmit={registerPayment}
         onSuccess={refetchPersonalTraining}
       />
