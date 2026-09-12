@@ -3,33 +3,43 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { endOfMonth, isWithinInterval, parseISO, startOfMonth } from "date-fns";
 import {
   AlertCircle,
   ArrowLeft,
   Calendar,
   CalendarClock,
+  ClipboardCheck,
   Mail,
   Phone,
+  Plus,
   UserCheck,
   UserMinus,
 } from "lucide-react";
 import { useMember } from "@/hooks/useMembers";
+import { useMemberEvaluations } from "@/hooks/usePhysicalEvaluations";
 import { usePersonalTraining } from "@/hooks/usePersonalTraining";
 import { useTrainerServices } from "@/hooks/useTrainerServices";
 import { MembershipStatus } from "@/components/members";
-import { ServicePaymentModal } from "@/components/trainer";
+import { ServicePaymentModal, TrainerServicesModal } from "@/components/trainer";
 import { Header } from "@/components/layout";
 import {
   Avatar,
   Badge,
   Button,
   Card,
+  EmptyState,
   Modal,
   ModalFooter,
   Spinner,
 } from "@/components/ui";
 import { getServiceStatus } from "@/lib/utils/serviceStatus";
 import { formatDate } from "@/lib/utils/dates";
+import {
+  calculateBmi,
+  calculateBodyFat,
+  formatPercentage,
+} from "@/lib/utils/anthropometry";
 import {
   formatCurrency,
   getMemberStatusLabel,
@@ -41,23 +51,47 @@ export default function TrainerMemberDetailPage() {
   const memberId = params.id as string;
 
   const { member, loading, error } = useMember(memberId);
+  const { evaluations, loading: evaluationsLoading } = useMemberEvaluations(memberId);
   const {
+    subscriptions,
     clients,
     registerPayment,
     cancelSubscription,
     suggestedStartDate,
     refetch: refetchPersonalTraining,
   } = usePersonalTraining();
-  const { personalTrainingService } = useTrainerServices();
+  const { services, personalTrainingService, updateService } = useTrainerServices();
 
   const [chargeOpen, setChargeOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
   const client = useMemo(() => clients.find((c) => c.id === memberId), [clients, memberId]);
   const current = client?.current_subscription ?? null;
   const ptStatus = getServiceStatus(current);
   const isCancelled = current?.status === "cancelled";
+
+  /**
+   * Toda la plata que este miembro le pagó al entrenador: personalizado y
+   * servicios sueltos. `clients` solo trae el personalizado, así que para la
+   * vista financiera se filtran las suscripciones crudas por miembro.
+   */
+  const payments = useMemo(
+    () => subscriptions.filter((s) => s.member_id === memberId),
+    [subscriptions, memberId]
+  );
+
+  const finance = useMemo(() => {
+    const monthInterval = { start: startOfMonth(new Date()), end: endOfMonth(new Date()) };
+    return {
+      total: payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0),
+      thisMonth: payments
+        .filter((p) => isWithinInterval(parseISO(p.created_at), monthInterval))
+        .reduce((sum, p) => sum + Number(p.amount_paid || 0), 0),
+      last: payments[0] ?? null,
+    };
+  }, [payments]);
 
   const handleCancel = async () => {
     if (!current) return;
@@ -166,6 +200,41 @@ export default function TrainerMemberDetailPage() {
           </div>
         </Card>
 
+        {/* Resumen de lo que este miembro le pagó al entrenador */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <p className="text-sm text-text-secondary">Total cobrado</p>
+            <p className="text-2xl font-bold text-text-primary">
+              {formatCurrency(finance.total)}
+            </p>
+            <p className="text-xs text-text-secondary mt-1">
+              {payments.length} {payments.length === 1 ? "cobro" : "cobros"}
+            </p>
+          </Card>
+          <Card>
+            <p className="text-sm text-text-secondary">Este mes</p>
+            <p className="text-2xl font-bold text-text-primary">
+              {formatCurrency(finance.thisMonth)}
+            </p>
+          </Card>
+          <Card className="col-span-2 lg:col-span-1">
+            <p className="text-sm text-text-secondary">Último cobro</p>
+            {finance.last ? (
+              <>
+                <p className="text-lg font-semibold text-text-primary truncate">
+                  {finance.last.concept || finance.last.trainer_services?.name}
+                </p>
+                <p className="text-xs text-text-secondary mt-1">
+                  {formatDate(finance.last.created_at, "d MMM yyyy")} ·{" "}
+                  {formatCurrency(Number(finance.last.amount_paid || 0))}
+                </p>
+              </>
+            ) : (
+              <p className="text-lg text-text-secondary">Sin cobros</p>
+            )}
+          </Card>
+        </div>
+
         {/* Membresía del gym — informativa; la cobra y renueva el admin */}
         <div className="mb-6">
           <div className="flex items-baseline justify-between mb-4">
@@ -178,9 +247,19 @@ export default function TrainerMemberDetailPage() {
           />
         </div>
 
-        {/* Personalizado — esto sí lo gestiona el entrenador */}
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Personalizado</h2>
+        {/* Personalizado */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-text-primary">Personalizado</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setServicesOpen(true)}
+              disabled={services.length === 0}
+            >
+              Servicios y precios
+            </Button>
+          </div>
 
           <Card>
             <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -237,41 +316,123 @@ export default function TrainerMemberDetailPage() {
                 </Button>
               </div>
             </div>
+          </Card>
+        </div>
 
-            {client && client.subscriptions.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-sm font-medium text-text-secondary mb-2">Historial de pagos</p>
-                <div className="divide-y divide-border">
-                  {client.subscriptions.map((sub) => {
-                    const subStatus = getServiceStatus(sub);
-                    return (
-                      <div key={sub.id} className="flex items-center justify-between gap-4 py-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-text-primary truncate">
-                            {sub.concept || sub.trainer_services?.name || "Cobro"}
-                          </p>
-                          <p className="text-xs text-text-secondary truncate">
-                            {formatDate(sub.start_date, "d MMM yyyy")}
-                            {sub.end_date && ` → ${formatDate(sub.end_date, "d MMM yyyy")}`}
-                            {" · "}
-                            {sub.payment_method
-                              ? getPaymentMethodLabel(sub.payment_method)
-                              : "Sin método"}
-                            {sub.notes && ` · ${sub.notes}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
+        {/* Evaluaciones físicas */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-text-primary">Evaluaciones físicas</h2>
+            <Link href={`/trainer/members/${memberId}/evaluaciones/nueva`}>
+              <Button variant="secondary" size="sm" leftIcon={<Plus className="h-4 w-4" />}>
+                Nueva evaluación
+              </Button>
+            </Link>
+          </div>
+
+          <Card padding="none">
+            {evaluationsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Spinner />
+              </div>
+            ) : evaluations.length === 0 ? (
+              <EmptyState
+                icon={ClipboardCheck}
+                title="Sin evaluaciones"
+                description="Registra la primera para empezar a seguir su evolución."
+                action={
+                  <Link href={`/trainer/members/${memberId}/evaluaciones/nueva`}>
+                    <Button variant="primary" size="sm">
+                      Nueva evaluación
+                    </Button>
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="divide-y divide-border">
+                {evaluations.map((evaluation) => {
+                  const bmi = calculateBmi(evaluation.weight_kg, evaluation.height_cm);
+                  const bodyFat = calculateBodyFat(evaluation, member, evaluation.evaluated_on);
+                  return (
+                    <Link
+                      key={evaluation.id}
+                      href={`/trainer/members/${memberId}/evaluaciones/${evaluation.id}`}
+                      className="flex items-center gap-4 p-4 hover:bg-surface-elevated transition-colors"
+                    >
+                      <div className="p-2 rounded-lg bg-success/10 flex-shrink-0">
+                        <ClipboardCheck className="h-5 w-5 text-success" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-text-primary">
+                          {formatDate(evaluation.evaluated_on, "d 'de' MMMM yyyy")}
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                          {evaluation.weight_kg !== null && `${evaluation.weight_kg} kg`}
+                          {bmi && ` · IMC ${bmi.value.toFixed(1)}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {bodyFat.ok && (
+                          <Badge variant={bodyFat.result.variant}>
+                            {formatPercentage(bodyFat.result.percentage)}
+                          </Badge>
+                        )}
+                        <Badge variant={evaluation.payment_id ? "default" : "success"} size="sm">
+                          {evaluation.payment_id ? "Cobrada" : "Incluida"}
+                        </Badge>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Historial de pagos — personalizado y servicios sueltos juntos */}
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Historial de pagos</h2>
+
+          <Card padding="none">
+            {payments.length === 0 ? (
+              <EmptyState
+                icon={UserCheck}
+                title="Sin cobros registrados"
+                description="Los cobros del personalizado y de las evaluaciones aparecen acá."
+              />
+            ) : (
+              <div className="divide-y divide-border">
+                {payments.map((sub) => {
+                  const subStatus = getServiceStatus(sub);
+                  return (
+                    <div key={sub.id} className="flex items-center justify-between gap-4 p-4">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {sub.concept || sub.trainer_services?.name || "Cobro"}
+                        </p>
+                        <p className="text-xs text-text-secondary truncate">
+                          {formatDate(sub.start_date, "d MMM yyyy")}
+                          {sub.end_date && ` → ${formatDate(sub.end_date, "d MMM yyyy")}`}
+                          {" · "}
+                          {sub.payment_method
+                            ? getPaymentMethodLabel(sub.payment_method)
+                            : "Sin método"}
+                          {sub.notes && ` · ${sub.notes}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {sub.trainer_services?.kind === "personal_training" && (
                           <Badge variant={subStatus.variant} size="sm">
                             {subStatus.label}
                           </Badge>
-                          <span className="text-sm font-medium text-text-primary tabular-nums">
-                            {formatCurrency(Number(sub.amount_paid || 0))}
-                          </span>
-                        </div>
+                        )}
+                        <span className="text-sm font-medium text-text-primary tabular-nums">
+                          {formatCurrency(Number(sub.amount_paid || 0))}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -289,6 +450,13 @@ export default function TrainerMemberDetailPage() {
         submitLabel={current && !isCancelled ? "Registrar pago" : "Dar de alta y cobrar"}
         onSubmit={registerPayment}
         onSuccess={refetchPersonalTraining}
+      />
+
+      <TrainerServicesModal
+        isOpen={servicesOpen}
+        onClose={() => setServicesOpen(false)}
+        services={services}
+        onSave={updateService}
       />
 
       <Modal

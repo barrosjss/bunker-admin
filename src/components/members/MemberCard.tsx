@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Card, Avatar, Badge } from "@/components/ui";
 import { MemberWithMembership } from "@/lib/supabase/types/database";
@@ -10,9 +11,15 @@ import { Phone, Mail, Calendar } from "lucide-react";
 interface MemberCardProps {
   member: MemberWithMembership;
   basePath?: string;
+  /**
+   * Badge extra junto al estado. El panel del entrenador lo usa para el
+   * personalizado, que el admin no ve — de ahí que sea un slot y no lógica
+   * propia de la card.
+   */
+  extraBadge?: ReactNode;
 }
 
-export function MemberCard({ member, basePath = "" }: MemberCardProps) {
+export function MemberCard({ member, basePath = "", extraBadge }: MemberCardProps) {
   const membershipDaysLeft = member.current_membership
     ? daysUntilExpiration(member.current_membership.end_date)
     : null;
@@ -67,7 +74,10 @@ export function MemberCard({ member, basePath = "" }: MemberCardProps) {
               <h3 className="font-semibold text-text-primary truncate">
                 {member.name}
               </h3>
-              {getStatusBadge()}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {extraBadge}
+                {getStatusBadge()}
+              </div>
             </div>
 
             <div className="space-y-1">

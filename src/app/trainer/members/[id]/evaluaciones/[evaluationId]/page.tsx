@@ -6,7 +6,6 @@ import { useParams, useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
-  ArrowRight,
   Minus,
   Plus,
   Trash2,
@@ -84,7 +83,8 @@ function DeltaPill({
 export default function EvaluacionDetallePage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const memberId = params.id as string;
+  const id = params.evaluationId as string;
 
   const { evaluation, previous, loading, error } = usePhysicalEvaluation(id);
   const { deleteEvaluation } = usePhysicalEvaluations();
@@ -121,7 +121,7 @@ export default function EvaluacionDetallePage() {
     setDeleting(true);
     try {
       await deleteEvaluation(id);
-      router.push("/trainer/evaluaciones");
+      router.push(`/trainer/members/${memberId}`);
     } catch {
       setDeleting(false);
       setConfirmOpen(false);
@@ -142,8 +142,8 @@ export default function EvaluacionDetallePage() {
         <AlertCircle className="h-12 w-12 text-danger mb-4" />
         <h2 className="text-xl font-semibold text-text-primary mb-2">Evaluación no encontrada</h2>
         <p className="text-text-secondary mb-4">{error || "Esta evaluación no existe."}</p>
-        <Link href="/trainer/evaluaciones">
-          <Button variant="secondary">Volver a evaluaciones</Button>
+        <Link href={`/trainer/members/${memberId}`}>
+          <Button variant="secondary">Volver a la ficha</Button>
         </Link>
       </div>
     );
@@ -155,11 +155,11 @@ export default function EvaluacionDetallePage() {
 
       <div className="p-6">
         <Link
-          href="/trainer/evaluaciones"
+          href={`/trainer/members/${memberId}`}
           className="inline-flex items-center gap-2 text-text-secondary hover:text-text-primary mb-6 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
-          Volver a evaluaciones
+          Volver a la ficha
         </Link>
 
         {/* Cabecera */}
@@ -181,23 +181,14 @@ export default function EvaluacionDetallePage() {
                 {member?.sex && ` · ${SEX_LABELS[member.sex]}`}
               </p>
             </div>
-            <div className="flex gap-2">
-              {member && (
-                <Link href={`/trainer/members/${member.id}`}>
-                  <Button variant="secondary" size="sm" rightIcon={<ArrowRight className="h-4 w-4" />}>
-                    Ficha
-                  </Button>
-                </Link>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirmOpen(true)}
-                aria-label="Eliminar evaluación"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmOpen(true)}
+              aria-label="Eliminar evaluación"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </Card>
 
@@ -370,7 +361,7 @@ export default function EvaluacionDetallePage() {
         )}
 
         {member && (
-          <Link href={`/trainer/evaluaciones/nueva?member=${member.id}`}>
+          <Link href={`/trainer/members/${memberId}/evaluaciones/nueva`}>
             <Button variant="secondary" leftIcon={<Plus className="h-5 w-5" />}>
               Nueva evaluación de {member.name.split(" ")[0]}
             </Button>

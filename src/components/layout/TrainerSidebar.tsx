@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/formatting";
 import {
   LayoutDashboard,
-  UserCheck,
-  ClipboardCheck,
   Users,
   Dumbbell,
   ClipboardList,
@@ -16,12 +14,12 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PanelSwitcher } from "./PanelSwitcher";
 
+// Todo lo del miembro — personalizado, cobros y evaluaciones — se gestiona
+// dentro de su ficha, no en secciones aparte.
 const navigation = [
   { name: "Dashboard", href: "/trainer", icon: LayoutDashboard },
-  { name: "Personalizados", href: "/trainer/personalizados", icon: UserCheck },
-  { name: "Evaluaciones", href: "/trainer/evaluaciones", icon: ClipboardCheck },
-  { name: "Entrenamientos", href: "/trainer/training", icon: Dumbbell },
   { name: "Miembros", href: "/trainer/members", icon: Users },
+  { name: "Entrenamientos", href: "/trainer/training", icon: Dumbbell },
   { name: "Ejercicios", href: "/trainer/exercises", icon: ClipboardList },
   { name: "Rutinas", href: "/trainer/routines", icon: BookOpen },
 ];

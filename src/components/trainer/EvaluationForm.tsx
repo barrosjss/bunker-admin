@@ -112,6 +112,10 @@ export function EvaluationForm({
   const member = useMemo(() => members.find((m) => m.id === memberId) || null, [members, memberId]);
   const isIncluded = memberId ? activeClientIds.has(memberId) : false;
 
+  // Cuando se entra desde la ficha de un miembro no hay nada que elegir: un
+  // select de una sola opción es ruido, así que se muestra el nombre y listo.
+  const memberLocked = members.length === 1 && !!preselectedMemberId;
+
   // Si no es personalizado, la evaluación se cobra aparte: se propone por defecto.
   useEffect(() => {
     if (!memberId || initialValue) return;
@@ -202,14 +206,23 @@ export function EvaluationForm({
       {/* Datos de la evaluación */}
       <Card>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
-            label="Miembro"
-            placeholder="Selecciona un miembro"
-            value={memberId}
-            onChange={(e) => setMemberId(e.target.value)}
-            disabled={!!initialValue}
-            options={members.map((m) => ({ value: m.id, label: m.name }))}
-          />
+          {memberLocked ? (
+            <div>
+              <span className="block text-sm font-medium text-text-primary mb-2">Miembro</span>
+              <p className="px-4 py-3 rounded-lg bg-surface-elevated border border-border text-text-primary min-h-touch flex items-center">
+                {member?.name ?? "—"}
+              </p>
+            </div>
+          ) : (
+            <Select
+              label="Miembro"
+              placeholder="Selecciona un miembro"
+              value={memberId}
+              onChange={(e) => setMemberId(e.target.value)}
+              disabled={!!initialValue}
+              options={members.map((m) => ({ value: m.id, label: m.name }))}
+            />
+          )}
           <Input
             type="date"
             label="Fecha de la evaluación"

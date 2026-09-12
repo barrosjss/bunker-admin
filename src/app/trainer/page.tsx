@@ -2,15 +2,13 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { endOfMonth, isWithinInterval, parseISO, startOfMonth } from "date-fns";
-import { format } from "date-fns";
+import { endOfMonth, format, isWithinInterval, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   BookOpen,
   ClipboardCheck,
   ClipboardList,
   Dumbbell,
-  Plus,
   UserCheck,
   Users,
 } from "lucide-react";
@@ -40,7 +38,8 @@ export default function TrainerDashboardPage() {
   const activeMembers = members.filter((m) => m.status === "active").length;
 
   const rows = useMemo(
-    () => clients.map((client) => ({ client, status: getServiceStatus(client.current_subscription) })),
+    () =>
+      clients.map((client) => ({ client, status: getServiceStatus(client.current_subscription) })),
     [clients]
   );
 
@@ -57,12 +56,14 @@ export default function TrainerDashboardPage() {
   }, [rows, subscriptions]);
 
   /** Lo accionable: primero los vencidos, después los que están por vencer. */
-  const pendingCharges = useMemo(() => {
-    return rows
-      .filter((r) => r.status.status === "expired" || r.status.status === "expiring")
-      .sort((a, b) => (a.status.diffDays ?? 0) - (b.status.diffDays ?? 0))
-      .slice(0, 5);
-  }, [rows]);
+  const pendingCharges = useMemo(
+    () =>
+      rows
+        .filter((r) => r.status.status === "expired" || r.status.status === "expiring")
+        .sort((a, b) => (a.status.diffDays ?? 0) - (b.status.diffDays ?? 0))
+        .slice(0, 5),
+    [rows]
+  );
 
   const recentEvaluations = evaluations.slice(0, 4);
 
@@ -78,20 +79,16 @@ export default function TrainerDashboardPage() {
           <p className="text-text-secondary capitalize">{today}</p>
         </div>
 
-        {/* Acciones rápidas */}
+        {/* Todo lo del miembro se gestiona en su ficha, así que las acciones
+            del dashboard llevan ahí en vez de a secciones aparte. */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <Link href="/trainer/evaluaciones/nueva">
-            <Button variant="primary" leftIcon={<Plus className="h-5 w-5" />}>
-              Nueva evaluación
-            </Button>
-          </Link>
-          <Link href="/trainer/personalizados">
-            <Button variant="secondary" leftIcon={<UserCheck className="h-5 w-5" />}>
-              Cobrar personalizado
+          <Link href="/trainer/members">
+            <Button variant="primary" leftIcon={<Users className="h-5 w-5" />}>
+              Ver miembros
             </Button>
           </Link>
           <Link href="/trainer/training">
-            <Button variant="ghost" leftIcon={<Dumbbell className="h-5 w-5" />}>
+            <Button variant="secondary" leftIcon={<Dumbbell className="h-5 w-5" />}>
               Nueva sesión
             </Button>
           </Link>
@@ -129,7 +126,7 @@ export default function TrainerDashboardPage() {
         <Card className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-text-primary">Cobros pendientes</h2>
-            <Link href="/trainer/personalizados">
+            <Link href="/trainer/members?filtro=personalizados">
               <Button variant="ghost" size="sm">
                 Ver todos
               </Button>
@@ -150,7 +147,7 @@ export default function TrainerDashboardPage() {
               {pendingCharges.map(({ client, status }) => (
                 <Link
                   key={client.id}
-                  href="/trainer/personalizados"
+                  href={`/trainer/members/${client.id}`}
                   className="flex items-center gap-4 py-3 hover:bg-surface-elevated transition-colors -mx-4 px-4"
                 >
                   <Avatar src={client.photo_url} name={client.name} size="md" />
@@ -171,24 +168,17 @@ export default function TrainerDashboardPage() {
 
         {/* Últimas evaluaciones */}
         <Card className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-text-primary">Últimas evaluaciones</h2>
-            <Link href="/trainer/evaluaciones">
-              <Button variant="ghost" size="sm">
-                Ver todas
-              </Button>
-            </Link>
-          </div>
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Últimas evaluaciones</h2>
 
           {recentEvaluations.length === 0 ? (
             <EmptyState
               icon={ClipboardCheck}
               title="Sin evaluaciones todavía"
-              description="Registra la primera y queda el histórico para comparar la evolución."
+              description="Entra a la ficha de un miembro para registrar la primera."
               action={
-                <Link href="/trainer/evaluaciones/nueva">
-                  <Button variant="primary" size="sm" leftIcon={<Plus className="h-5 w-5" />}>
-                    Nueva evaluación
+                <Link href="/trainer/members">
+                  <Button variant="primary" size="sm">
+                    Ver miembros
                   </Button>
                 </Link>
               }
@@ -204,7 +194,7 @@ export default function TrainerDashboardPage() {
                 return (
                   <Link
                     key={evaluation.id}
-                    href={`/trainer/evaluaciones/${evaluation.id}`}
+                    href={`/trainer/members/${evaluation.member_id}/evaluaciones/${evaluation.id}`}
                     className="flex items-center gap-4 py-3 hover:bg-surface-elevated transition-colors -mx-4 px-4"
                   >
                     <Avatar
@@ -235,19 +225,12 @@ export default function TrainerDashboardPage() {
         {/* Acceso rápido */}
         <div>
           <h2 className="text-lg font-semibold text-text-primary mb-4">Acceso rápido</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <Link href="/trainer/personalizados">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/trainer/members">
               <Card hoverable className="text-center py-6 h-full">
-                <UserCheck className="h-8 w-8 text-success mx-auto mb-2" />
-                <p className="font-medium text-text-primary">Personalizados</p>
-                <p className="text-sm text-text-secondary">{clients.length} en total</p>
-              </Card>
-            </Link>
-            <Link href="/trainer/evaluaciones">
-              <Card hoverable className="text-center py-6 h-full">
-                <ClipboardCheck className="h-8 w-8 text-success mx-auto mb-2" />
-                <p className="font-medium text-text-primary">Evaluaciones</p>
-                <p className="text-sm text-text-secondary">{evaluations.length} registradas</p>
+                <Users className="h-8 w-8 text-success mx-auto mb-2" />
+                <p className="font-medium text-text-primary">Miembros</p>
+                <p className="text-sm text-text-secondary">{activeMembers} activos</p>
               </Card>
             </Link>
             <Link href="/trainer/training">
@@ -255,13 +238,6 @@ export default function TrainerDashboardPage() {
                 <Dumbbell className="h-8 w-8 text-success mx-auto mb-2" />
                 <p className="font-medium text-text-primary">Entrenamientos</p>
                 <p className="text-sm text-text-secondary">{todaySessions.length} hoy</p>
-              </Card>
-            </Link>
-            <Link href="/trainer/members">
-              <Card hoverable className="text-center py-6 h-full">
-                <Users className="h-8 w-8 text-success mx-auto mb-2" />
-                <p className="font-medium text-text-primary">Miembros</p>
-                <p className="text-sm text-text-secondary">{activeMembers} activos</p>
               </Card>
             </Link>
             <Link href="/trainer/exercises">

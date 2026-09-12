@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Header } from "@/components/layout";
-import { Spinner } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
 import { EvaluationForm } from "@/components/trainer";
 import type { EvaluationCharge, EvaluationFormValues } from "@/components/trainer";
-import { useMembers } from "@/hooks/useMembers";
+import { useMember, useMembers } from "@/hooks/useMembers";
 import { usePersonalTraining } from "@/hooks/usePersonalTraining";
 import { usePhysicalEvaluations } from "@/hooks/usePhysicalEvaluations";
 import { useTrainerServices } from "@/hooks/useTrainerServices";
@@ -16,10 +16,11 @@ import { isActivePersonalTraining } from "@/lib/utils/serviceStatus";
 
 export default function NuevaEvaluacionPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const preselectedMemberId = searchParams.get("member") || undefined;
+  const params = useParams();
+  const memberId = params.id as string;
 
-  const { members, loading: membersLoading, updateMember, refetch: refetchMembers } = useMembers();
+  const { member, loading: memberLoading } = useMember(memberId);
+  const { updateMember, refetch: refetchMembers } = useMembers();
   const { clients, loading: ptLoading, registerPayment } = usePersonalTraining();
   const { evaluationService, loading: servicesLoading, ensureBaseServices } = useTrainerServices();
   const { createEvaluation } = usePhysicalEvaluations();
@@ -28,13 +29,11 @@ export default function NuevaEvaluacionPage() {
     if (!servicesLoading) ensureBaseServices();
   }, [servicesLoading, ensureBaseServices]);
 
-  /** Quiénes tienen el personalizado vigente: para ellos la evaluación va incluida. */
+  /** Si tiene el personalizado vigente, la evaluación va incluida. */
   const activeClientIds = useMemo(
     () =>
       new Set(
-        clients
-          .filter((c) => isActivePersonalTraining(c.current_subscription))
-          .map((c) => c.id)
+        clients.filter((c) => isActivePersonalTraining(c.current_subscription)).map((c) => c.id)
       ),
     [clients]
   );
@@ -46,7 +45,7 @@ export default function NuevaEvaluacionPage() {
 
     if (charge && evaluationService) {
       const payment = await registerPayment({
-        memberId: values.member_id,
+        memberId,
         service: evaluationService,
         concept: evaluationService.name,
         startDate: values.evaluated_on,
@@ -57,20 +56,16 @@ export default function NuevaEvaluacionPage() {
       paymentId = payment.id;
     }
 
-    const created = await createEvaluation({
-      ...values,
-      payment_id: paymentId,
-    });
-
-    router.push(`/trainer/evaluaciones/${created.id}`);
+    const created = await createEvaluation({ ...values, payment_id: paymentId });
+    router.push(`/trainer/members/${memberId}/evaluaciones/${created.id}`);
   };
 
-  const handleSetMemberSex = async (memberId: string, sex: "male" | "female") => {
-    await updateMember(memberId, { sex });
+  const handleSetMemberSex = async (id: string, sex: "male" | "female") => {
+    await updateMember(id, { sex });
     await refetchMembers();
   };
 
-  const loading = membersLoading || ptLoading || servicesLoading;
+  const loading = memberLoading || ptLoading || servicesLoading;
 
   return (
     <div>
@@ -78,25 +73,32 @@ export default function NuevaEvaluacionPage() {
 
       <div className="p-6">
         <Link
-          href="/trainer/evaluaciones"
+          href={`/trainer/members/${memberId}`}
           className="inline-flex items-center gap-2 text-text-secondary hover:text-text-primary mb-6 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
-          Volver a evaluaciones
+          Volver a la ficha
         </Link>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner size="lg" />
           </div>
+        ) : !member ? (
+          <div className="text-center py-12">
+            <p className="text-text-secondary mb-4">Miembro no encontrado.</p>
+            <Link href="/trainer/members">
+              <Button variant="secondary">Volver a miembros</Button>
+            </Link>
+          </div>
         ) : (
           <EvaluationForm
-            members={members}
+            members={[member]}
             activeClientIds={activeClientIds}
             evaluationService={evaluationService}
-            preselectedMemberId={preselectedMemberId}
+            preselectedMemberId={memberId}
             onSubmit={handleSubmit}
-            onCancel={() => router.push("/trainer/evaluaciones")}
+            onCancel={() => router.push(`/trainer/members/${memberId}`)}
             onSetMemberSex={handleSetMemberSex}
           />
         )}
