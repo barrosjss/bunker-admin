@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrentTrainer } from "./useCurrentTrainer";
 import type {
@@ -22,6 +22,12 @@ export function useTrainerServices() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
+
+  // El alta de los servicios base se intenta una sola vez por sesión. Sin este
+  // cerrojo, un insert que falla vuelve a dispararse en cada render: fetchServices
+  // togglea `loading`, eso recrea el useCallback y el efecto que lo llama se
+  // vuelve a ejecutar, en bucle.
+  const ensureAttempted = useRef(false);
 
   const fetchServices = useCallback(async () => {
     if (!trainer) {
@@ -95,9 +101,13 @@ export function useTrainerServices() {
     return data;
   };
 
-  /** Crea los servicios base que falten. Idempotente por el índice único de `kind`. */
+  /**
+   * Crea los servicios base que falten — red de seguridad para un entrenador
+   * dado de alta después de la migración 017. Corre una sola vez por sesión y
+   * se abstiene si la última lectura falló (tabla inexistente, RLS, etc.).
+   */
   const ensureBaseServices = useCallback(async () => {
-    if (!trainer || loading) return;
+    if (!trainer || loading || error || ensureAttempted.current) return;
 
     const missing: TrainerServiceInsert[] = [];
 
@@ -130,9 +140,17 @@ export function useTrainerServices() {
 
     if (missing.length === 0) return;
 
-    await supabase.from("trainer_services").insert(missing);
+    // Se marca antes del await: si falla, no se reintenta en el render siguiente.
+    ensureAttempted.current = true;
+
+    const { error: insertError } = await supabase.from("trainer_services").insert(missing);
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
     await fetchServices();
-  }, [trainer, services, loading, supabase, fetchServices]);
+  }, [trainer, services, loading, error, supabase, fetchServices]);
 
   return {
     services,
