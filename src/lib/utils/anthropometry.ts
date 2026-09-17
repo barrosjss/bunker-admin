@@ -43,8 +43,11 @@ function num(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Los pliegues se capturan en cm; Durnin-Womersley trabaja en mm. */
+const CM_TO_MM = 10;
+
 /**
- * Valor representativo de un sitio, en mm.
+ * Valor representativo de un sitio, en cm.
  * Bilateral con ambos lados → promedio. Con uno solo → ese.
  */
 export function siteValue(evaluation: SkinfoldSource, site: SkinfoldSite): number | null {
@@ -94,6 +97,9 @@ export function calculateBmi(weightKg: unknown, heightCm: unknown): BmiResult | 
 // de 4 pliegues (tricipital, bicipital, subescapular, suprailíaco), con
 // coeficientes por sexo y franja etaria. Luego Siri (1961) convierte densidad
 // a porcentaje de grasa.
+//
+// OJO con las unidades: la tabla original está en mm y acá los pliegues se
+// guardan en cm. La conversión se hace una sola vez, en calculateBodyFat.
 //
 // Se eligió esta fórmula porque los 4 sitios que necesita ya están en la
 // planilla que el entrenador usa hoy — no le pide medir nada nuevo.
@@ -162,7 +168,7 @@ function classifyBodyFat(sex: Sex, percentage: number): BodyFatCategory {
 export interface BodyFatResult {
   percentage: number;
   density: number;
-  /** Suma de los 4 pliegues de Durnin-Womersley, en mm. */
+  /** Suma de los 4 pliegues de Durnin-Womersley, en cm. */
   sum4: number;
   age: number;
   sex: Sex;
@@ -201,9 +207,13 @@ export function calculateBodyFat(
 
   if (missing.length > 0) return { ok: false, missing };
 
+  // Único punto donde se cambia de unidad: la fórmula está publicada en mm,
+  // así que convertir acá evita tener que pensarlo en el resto del código.
   const sum4 = values.reduce<number>((acc, v) => acc + v!, 0);
+  const sum4Mm = sum4 * CM_TO_MM;
+
   const { c, m } = durninCoefficients(sex!, age!);
-  const density = c - m * Math.log10(sum4);
+  const density = c - m * Math.log10(sum4Mm);
   const percentage = 495 / density - 450;
 
   const weight = num(evaluation.weight_kg);
@@ -234,7 +244,7 @@ export const BODY_FAT_BLOCKER_LABELS: Record<BodyFatBlocker, string> = {
 
 // ─── Suma total de pliegues ──────────────────────────────────────────────────
 
-/** Suma de los 8 sitios medidos, en mm. Sirve para seguir la evolución. */
+/** Suma de los 8 sitios medidos, en cm. Sirve para seguir la evolución. */
 export function totalSkinfolds(evaluation: SkinfoldSource): { sum: number; sites: number } {
   let sum = 0;
   let sites = 0;
@@ -316,9 +326,9 @@ export function compareEvaluations(
 
 // ─── Formato ─────────────────────────────────────────────────────────────────
 
-export function formatMm(value: number | null | undefined): string {
+export function formatCm(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
-  return Number.isInteger(value) ? `${value} mm` : `${value.toFixed(1)} mm`;
+  return `${value.toFixed(2).replace(/\.?0+$/, "")} cm`;
 }
 
 export function formatPercentage(value: number | null | undefined): string {

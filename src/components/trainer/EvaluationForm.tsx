@@ -7,6 +7,7 @@ import { Badge, Button, Card, Input, Select, Textarea } from "@/components/ui";
 import {
   BODY_FAT_BLOCKER_LABELS,
   SKINFOLD_SITES,
+  ageAt,
   calculateBmi,
   calculateBodyFat,
   formatPercentage,
@@ -116,6 +117,13 @@ export function EvaluationForm({
   // select de una sola opción es ruido, así que se muestra el nombre y listo.
   const memberLocked = members.length === 1 && !!preselectedMemberId;
 
+  // La edad no se captura: sale de la fecha de nacimiento, calculada al día de
+  // la evaluación para que una evaluación vieja no cambie con el tiempo.
+  const age = useMemo(
+    () => ageAt(member?.birth_date, evaluatedOn),
+    [member?.birth_date, evaluatedOn]
+  );
+
   // Si no es personalizado, la evaluación se cobra aparte: se propone por defecto.
   useEffect(() => {
     if (!memberId || initialValue) return;
@@ -205,7 +213,7 @@ export function EvaluationForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Datos de la evaluación */}
       <Card>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {memberLocked ? (
             <div>
               <span className="block text-sm font-medium text-text-primary mb-2">Miembro</span>
@@ -229,6 +237,17 @@ export function EvaluationForm({
             value={evaluatedOn}
             onChange={(e) => setEvaluatedOn(e.target.value)}
           />
+
+          <div>
+            <span className="block text-sm font-medium text-text-primary mb-2">Edad</span>
+            <p className="px-4 py-3 rounded-lg bg-surface-elevated border border-border min-h-touch flex items-center">
+              {age !== null ? (
+                <span className="text-text-primary">{age} años</span>
+              ) : (
+                <span className="text-text-secondary">Sin fecha de nacimiento</span>
+              )}
+            </p>
+          </div>
         </div>
 
         {member && (
@@ -314,7 +333,7 @@ export function EvaluationForm({
       <Card>
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="text-lg font-semibold text-text-primary">Pliegues cutáneos</h2>
-          <span className="text-sm text-text-secondary">en mm</span>
+          <span className="text-sm text-text-secondary">en cm</span>
         </div>
 
         <div className="hidden sm:grid grid-cols-[1fr_7rem_7rem] gap-3 pb-2 mb-2 border-b border-border">
@@ -363,7 +382,7 @@ export function EvaluationForm({
                     type="text"
                     inputMode="decimal"
                     aria-label={site.label}
-                    placeholder="mm"
+                    placeholder="cm"
                     value={fields[site.key] ?? ""}
                     onChange={(e) => setField(site.key, e.target.value)}
                   />
@@ -413,7 +432,7 @@ export function EvaluationForm({
           <div>
             <p className="text-sm text-text-secondary">Σ 4 pliegues</p>
             <p className="text-2xl font-bold text-text-primary">
-              {bodyFat.ok ? `${bodyFat.result.sum4.toFixed(1)} mm` : "—"}
+              {bodyFat.ok ? `${bodyFat.result.sum4.toFixed(2)} cm` : "—"}
             </p>
           </div>
 
@@ -422,7 +441,7 @@ export function EvaluationForm({
               Σ total ({total.sites} {total.sites === 1 ? "sitio" : "sitios"})
             </p>
             <p className="text-2xl font-bold text-text-primary">
-              {total.sites > 0 ? `${total.sum.toFixed(1)} mm` : "—"}
+              {total.sites > 0 ? `${total.sum.toFixed(2)} cm` : "—"}
             </p>
           </div>
         </div>

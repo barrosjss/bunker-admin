@@ -125,6 +125,11 @@ El % de grasa usa Durnin & Womersley (1974) sobre la suma de 4 pliegues + Siri, 
 `lib/utils/anthropometry.ts`. Necesita `members.sex` y `members.birth_date`; la edad se
 calcula a la fecha de la evaluación, no a hoy.
 
+**Unidades**: los pliegues se capturan y se guardan en **cm**, pero la fórmula está
+publicada en mm. La conversión ocurre en un único punto — `calculateBodyFat` — y las
+columnas son `NUMERIC(5,2)` para no perder el equivalente a 0,1 mm. Si algún día se lee
+un pliegue asumiendo mm, el % de grasa sale mal sin dar error.
+
 ## Flujo de autenticación
 
 ```

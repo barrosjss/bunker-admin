@@ -32,7 +32,7 @@ import {
   calculateBmi,
   calculateBodyFat,
   compareEvaluations,
-  formatMm,
+  formatCm,
   formatPercentage,
   siteValue,
   totalSkinfolds,
@@ -193,7 +193,15 @@ export default function EvaluacionDetallePage() {
         </Card>
 
         {/* Resultados */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <Card>
+            <p className="text-sm text-text-secondary">Edad</p>
+            <p className="text-2xl font-bold text-text-primary">
+              {age !== null ? age : "—"}
+            </p>
+            {age !== null && <p className="text-xs text-text-secondary mt-1">años</p>}
+          </Card>
+
           <Card>
             <p className="text-sm text-text-secondary">Peso</p>
             <p className="text-2xl font-bold text-text-primary">
@@ -230,9 +238,9 @@ export default function EvaluacionDetallePage() {
           <Card>
             <p className="text-sm text-text-secondary">Σ pliegues</p>
             <p className="text-2xl font-bold text-text-primary">
-              {total && total.sites > 0 ? `${total.sum.toFixed(1)} mm` : "—"}
+              {total && total.sites > 0 ? `${total.sum.toFixed(2)} cm` : "—"}
             </p>
-            {delta && <div className="mt-1"><DeltaPill value={delta.sumSkinfolds} unit="mm" /></div>}
+            {delta && <div className="mt-1"><DeltaPill value={delta.sumSkinfolds} unit="cm" decimals={2} /></div>}
           </Card>
         </div>
 
@@ -255,7 +263,7 @@ export default function EvaluacionDetallePage() {
             </div>
             <p className="mt-4 text-sm text-text-secondary">
               Estimado por Durnin-Womersley sobre la suma de 4 pliegues (
-              {bodyFat.result.sum4.toFixed(1)} mm) y convertido con Siri.
+              {bodyFat.result.sum4.toFixed(2)} cm) y convertido con Siri.
             </p>
           </Card>
         )}
@@ -326,17 +334,17 @@ export default function EvaluacionDetallePage() {
                         </div>
                       </td>
                       <td className="text-right py-2 px-3 text-text-secondary tabular-nums">
-                        {site.bilateral ? formatMm(record[`${site.key}_left`]) : "—"}
+                        {site.bilateral ? formatCm(record[`${site.key}_left`]) : "—"}
                       </td>
                       <td className="text-right py-2 px-3 text-text-secondary tabular-nums">
-                        {site.bilateral ? formatMm(record[`${site.key}_right`]) : "—"}
+                        {site.bilateral ? formatCm(record[`${site.key}_right`]) : "—"}
                       </td>
                       <td className="text-right py-2 pl-3 font-medium text-text-primary tabular-nums">
-                        {formatMm(used)}
+                        {formatCm(used)}
                       </td>
                       {previous && (
                         <td className="text-right py-2 pl-3 text-text-secondary tabular-nums">
-                          {formatMm(prior)}
+                          {formatCm(prior)}
                         </td>
                       )}
                     </tr>
