@@ -16,19 +16,31 @@ El repo tiene **dos licencias distintas**:
 Por eso `exercises.attribution` es obligatoria y la UI la muestra en el detalle: la licencia
 exige que la atribución viaje con cada uso. **No quites esa atribución.**
 
+## Dos caminos
+
+**A. Edge Function (el que se usó).** Una función desplegada dentro de Supabase hace todo el
+trabajo: las Edge Functions reciben `SUPABASE_SERVICE_ROLE_KEY` en su entorno, así que pueden
+escribir en Storage y en filas globales **sin que la clave salga del servidor**. La función
+busca el dataset directo de `raw.githubusercontent.com`; solo recibe por POST el mapa de
+traducciones y las listas de archivos.
+
+**B. Scripts locales.** `1-subir-media.mjs` y `2-cargar-ejercicios.mjs` hacen lo mismo desde
+la máquina, pero necesitan la `service_role` key en `.env.local`. Sirven si la función no está
+desplegada.
+
+> La función `importar-catalogo` es de un solo uso. Conviene **borrarla al terminar**: es un
+> endpoint con privilegios de servicio que no hace falta tener vivo.
+
 ## Requisitos
 
 1. Clonar el dataset:
    ```bash
    git clone --depth 1 https://github.com/hasaneyldrm/exercises-dataset.git
    ```
-2. `.env.local` en la raíz con la clave de servicio (Supabase → Settings → API → `service_role`):
-   ```
-   SUPABASE_SERVICE_ROLE_KEY=...
-   ```
-   Hace falta porque la carga escribe en Storage y en filas globales
-   (`establishment_id IS NULL`), que el RLS no permite con la clave pública.
-3. Migración `022_exercise_media_and_instructions.sql` aplicada.
+2. Solo para el camino B: `.env.local` con `SUPABASE_SERVICE_ROLE_KEY=...`
+   (Supabase → Settings → API → `service_role`). La carga escribe en Storage y en filas
+   globales (`establishment_id IS NULL`), que el RLS no permite con la clave pública.
+3. Migraciones `022` y `023` aplicadas.
 4. Bucket público `exercise-media` creado.
 
 ## Pasos
@@ -80,3 +92,7 @@ from exercises;
   press de banca como "triceps"). El bueno es `target`, y es el que usa `construir_import.py`.
   Si alguna vez se reimporta desde otra fuente, revisar esto primero.
 - `useExercises` pide `range(0, 4999)`: PostgREST corta en 1.000 filas y el catálogo pasa de eso.
+- El índice `uq_exercises_source` **no puede ser parcial**: Postgres rechaza un índice con
+  `WHERE` como árbitro de `ON CONFLICT` y PostgREST no emite esa cláusula. Lo corrigió la 023.
+- Al copiar la media, subir un lote entero en paralelo agota el pool de conexiones de Storage
+  ("Too many connections"). La función usa un pool de 5 con un reintento.
