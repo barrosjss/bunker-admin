@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { Exercise } from "@/lib/supabase/types/database";
-import { Card, Button, Badge } from "@/components/ui";
-import { Check, ChevronLeft, Dumbbell } from "lucide-react";
+import { Card, Button, Badge, Input } from "@/components/ui";
+import { Check, ChevronLeft, Dumbbell, Search } from "lucide-react";
 
 const MUSCLE_GROUP_ORDER = [
   "Pecho",
@@ -33,6 +33,7 @@ export function ExerciseSelector({
     () => new Map(initialSelected.map((e) => [e.id, e]))
   );
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const grouped = useMemo(() => {
     const map: Record<string, Exercise[]> = {};
@@ -85,7 +86,10 @@ export function ExerciseSelector({
                 key={group}
                 hoverable
                 className="cursor-pointer"
-                onClick={() => setActiveGroup(group)}
+                onClick={() => {
+                  setQuery("");
+                  setActiveGroup(group);
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -127,7 +131,12 @@ export function ExerciseSelector({
   }
 
   // Exercise list for active group
-  const groupExercises = grouped[activeGroup] || [];
+  // Con el catálogo importado un grupo puede tener 200 ejercicios: sin
+  // búsqueda, encontrar uno es scrollear a ciegas.
+  const groupExercises = (grouped[activeGroup] || []).filter((e) => {
+    const q = query.trim().toLowerCase();
+    return !q || e.name.toLowerCase().includes(q);
+  });
 
   return (
     <div className="space-y-4">
@@ -135,7 +144,10 @@ export function ExerciseSelector({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setActiveGroup(null)}
+          onClick={() => {
+            setQuery("");
+            setActiveGroup(null);
+          }}
           leftIcon={<ChevronLeft className="h-4 w-4" />}
         >
           Volver
@@ -143,6 +155,19 @@ export function ExerciseSelector({
         <h3 className="font-semibold text-text-primary">{activeGroup}</h3>
         <Badge variant="primary">{countForGroup(activeGroup)}</Badge>
       </div>
+
+      <Input
+        type="search"
+        placeholder={`Buscar en ${activeGroup}...`}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        leftIcon={<Search className="h-5 w-5" />}
+      />
+
+      <p className="text-sm text-text-secondary">
+        {groupExercises.length}{" "}
+        {groupExercises.length === 1 ? "ejercicio" : "ejercicios"}
+      </p>
 
       <div className="space-y-2">
         {groupExercises.map((exercise) => {
@@ -190,7 +215,10 @@ export function ExerciseSelector({
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t border-border">
-        <Button variant="secondary" onClick={() => setActiveGroup(null)}>
+        <Button variant="secondary" onClick={() => {
+            setQuery("");
+            setActiveGroup(null);
+          }}>
           Ver grupos
         </Button>
         <Button

@@ -14,10 +14,13 @@ export function useExercises() {
     setLoading(true);
     setError(null);
 
+    // PostgREST corta en 1.000 filas por defecto y el catálogo importado pasa
+    // de eso: sin range() el listado queda truncado en silencio.
     const { data, error } = await supabase
       .from("exercises")
       .select("*")
-      .order("name");
+      .order("name")
+      .range(0, 4999);
 
     if (error) {
       setError(error.message);

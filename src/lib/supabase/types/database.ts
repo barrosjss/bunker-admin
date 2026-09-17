@@ -283,6 +283,16 @@ export type Database = {
           muscle_group: string | null;
           equipment: string | null;
           video_url: string | null;
+          image_url: string | null;
+          gif_url: string | null;
+          instructions: string | null;
+          instruction_steps: string[] | null;
+          body_part: string | null;
+          secondary_muscles: string[] | null;
+          attribution: string | null;
+          source: string | null;
+          source_id: string | null;
+          name_en: string | null;
           created_at: string;
         };
         Insert: {
@@ -293,6 +303,16 @@ export type Database = {
           muscle_group?: string | null;
           equipment?: string | null;
           video_url?: string | null;
+          image_url?: string | null;
+          gif_url?: string | null;
+          instructions?: string | null;
+          instruction_steps?: string[] | null;
+          body_part?: string | null;
+          secondary_muscles?: string[] | null;
+          attribution?: string | null;
+          source?: string | null;
+          source_id?: string | null;
+          name_en?: string | null;
           created_at?: string;
         };
         Update: {
@@ -303,6 +323,16 @@ export type Database = {
           muscle_group?: string | null;
           equipment?: string | null;
           video_url?: string | null;
+          image_url?: string | null;
+          gif_url?: string | null;
+          instructions?: string | null;
+          instruction_steps?: string[] | null;
+          body_part?: string | null;
+          secondary_muscles?: string[] | null;
+          attribution?: string | null;
+          source?: string | null;
+          source_id?: string | null;
+          name_en?: string | null;
         };
         Relationships: [
           {
