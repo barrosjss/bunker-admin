@@ -7,8 +7,10 @@ import { Badge, Button, Card, Input, Select, Textarea } from "@/components/ui";
 import {
   BODY_FAT_BLOCKER_LABELS,
   SKINFOLD_SITES,
+  SKINFOLD_MAX_CM,
   ageAt,
   calculateBmi,
+  isImplausibleSkinfold,
   calculateBodyFat,
   formatPercentage,
   totalSkinfolds,
@@ -158,8 +160,31 @@ export function EvaluationForm({
       bodyFat.result.category === "fitness" ||
       bodyFat.result.category === "essential");
 
+  /** Campos cuyo valor solo se explica como milímetros mal cargados. */
+  const implausibleFields = useMemo(
+    () => FIELDS.filter((f) => isImplausibleSkinfold(measurements[f])),
+    [measurements]
+  );
+  const looksLikeMillimeters = implausibleFields.length > 0;
+
   const setField = (key: string, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
+
+  /**
+   * Pasa de una vez toda la planilla de mm a cm. Transcribir el papel campo por
+   * campo corriendo la coma es donde se cuela el error, así que conviene que la
+   * corrección sea un botón y no trece ediciones a mano.
+   */
+  const convertAllToCm = () => {
+    setFields((prev) => {
+      const next: FieldMap = { ...prev };
+      for (const f of FIELDS) {
+        const value = toNumber(prev[f] ?? "");
+        if (value !== null) next[f] = String(value / 10);
+      }
+      return next;
+    });
+  };
 
   const handleSetSex = async (sex: "male" | "female") => {
     if (!memberId) return;
@@ -183,6 +208,14 @@ export function EvaluationForm({
     }
     if (total.sites === 0 && measurements.weight_kg === null) {
       setError("Registra al menos un pliegue o el peso.");
+      return;
+    }
+    if (looksLikeMillimeters) {
+      setError(
+        `Hay ${implausibleFields.length} ${
+          implausibleFields.length === 1 ? "pliegue" : "pliegues"
+        } por encima de ${SKINFOLD_MAX_CM} cm. Corrígelos o usa "Pasar de mm a cm".`
+      );
       return;
     }
 
@@ -336,6 +369,35 @@ export function EvaluationForm({
           <span className="text-sm text-text-secondary">en cm</span>
         </div>
 
+        {looksLikeMillimeters && (
+          <div className="mb-4 rounded-lg border border-warning/30 bg-warning/5 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+              <TriangleAlert className="h-5 w-5 text-warning flex-shrink-0 sm:mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-text-primary">
+                  ¿Estos valores están en milímetros?
+                </p>
+                <p className="text-sm text-text-secondary mt-1">
+                  {implausibleFields.length === 1
+                    ? "Un pliegue supera"
+                    : `${implausibleFields.length} pliegues superan`}{" "}
+                  los {SKINFOLD_MAX_CM} cm, fuera del rango de cualquier plicómetro. Si estás
+                  copiando la planilla de papel, esos números vienen en mm.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={convertAllToCm}
+                className="flex-shrink-0"
+              >
+                Pasar de mm a cm
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="hidden sm:grid grid-cols-[1fr_7rem_7rem] gap-3 pb-2 mb-2 border-b border-border">
           <span className="text-sm font-medium text-text-secondary">Sitio</span>
           <span className="text-sm font-medium text-text-secondary">Izquierdo</span>
@@ -366,6 +428,11 @@ export function EvaluationForm({
                     placeholder="Izq"
                     value={fields[`${site.key}_left`] ?? ""}
                     onChange={(e) => setField(`${site.key}_left`, e.target.value)}
+                    error={
+                      isImplausibleSkinfold(measurements[`${site.key}_left`])
+                        ? "¿mm?"
+                        : undefined
+                    }
                   />
                   <Input
                     type="text"
@@ -374,6 +441,11 @@ export function EvaluationForm({
                     placeholder="Der"
                     value={fields[`${site.key}_right`] ?? ""}
                     onChange={(e) => setField(`${site.key}_right`, e.target.value)}
+                    error={
+                      isImplausibleSkinfold(measurements[`${site.key}_right`])
+                        ? "¿mm?"
+                        : undefined
+                    }
                   />
                 </>
               ) : (
@@ -385,6 +457,7 @@ export function EvaluationForm({
                     placeholder="cm"
                     value={fields[site.key] ?? ""}
                     onChange={(e) => setField(site.key, e.target.value)}
+                    error={isImplausibleSkinfold(measurements[site.key]) ? "¿mm?" : undefined}
                   />
                 </div>
               )}

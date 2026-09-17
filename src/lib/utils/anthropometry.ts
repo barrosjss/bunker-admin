@@ -47,6 +47,26 @@ function num(value: unknown): number | null {
 const CM_TO_MM = 10;
 
 /**
+ * Techo de un pliegue creíble, en cm.
+ *
+ * 8 cm son 80 mm: por encima del rango de cualquier plicómetro, así que un
+ * valor mayor no es una persona muy grasa — es un número en milímetros escrito
+ * en un campo que espera centímetros. Es el error más probable, porque la
+ * planilla de papel del entrenador está en mm y al transcribirla hay que correr
+ * la coma en cada dato.
+ *
+ * Importa atajarlo: un pliegue en mm no rompe nada de forma visible, solo
+ * devuelve un % de grasa equivocado que parece razonable. Con los datos reales
+ * de la planilla, cargar mm en vez de cm convierte un 12,9% en un 42%.
+ */
+export const SKINFOLD_MAX_CM = 8;
+
+/** true si el valor solo se explica como milímetros mal cargados. */
+export function isImplausibleSkinfold(value: number | null | undefined): boolean {
+  return value !== null && value !== undefined && value > SKINFOLD_MAX_CM;
+}
+
+/**
  * Valor representativo de un sitio, en cm.
  * Bilateral con ambos lados → promedio. Con uno solo → ese.
  */
