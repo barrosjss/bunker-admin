@@ -193,7 +193,7 @@ export default function EvaluacionDetallePage() {
         </Card>
 
         {/* Resultados */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           <Card>
             <p className="text-sm text-text-secondary">Edad</p>
             <p className="text-2xl font-bold text-text-primary">
@@ -208,6 +208,18 @@ export default function EvaluacionDetallePage() {
               {evaluation.weight_kg !== null ? `${evaluation.weight_kg} kg` : "—"}
             </p>
             {delta && <div className="mt-1"><DeltaPill value={delta.weightKg} unit="kg" lowerIsBetter={false} /></div>}
+          </Card>
+
+          <Card>
+            <p className="text-sm text-text-secondary">Estatura</p>
+            <p className="text-2xl font-bold text-text-primary">
+              {evaluation.height_cm !== null
+                ? `${Number(evaluation.height_cm).toFixed(1).replace(/\.0$/, "")} cm`
+                : "—"}
+            </p>
+            {bmi && (
+              <p className="text-xs text-text-secondary mt-1">Con el peso, da el IMC</p>
+            )}
           </Card>
 
           <Card>
